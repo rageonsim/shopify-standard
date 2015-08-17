@@ -1,0 +1,86 @@
+<?php
+/**
+ * Index View For Index Controller
+ * Filepath: [Project]/views/update/skus.phtml
+ **/
+?>
+<div class="row">
+<main role="main" class=".col-xs-12 .col-sm-6 .col-lg-8">
+	<!-- Update/Skus -->
+	<form action="<?php echo "/$save_action/"; ?>" method="post" enctype="multipart/form-data">
+		<table class="table table-bordered table-striped table-hover">
+			<tr>
+				<th>SKU:</th>
+				<th>Product:</th>
+				<th>Edit&nbsp;SKU:</th>
+			</tr>
+		<?php // Loop through each error sku
+			// take a sub-set of erros: amount defined in controller
+			$errors_count    = count($sku_parse_error);
+			$errors_per_page = $errors_count < $errors_per_page ? $errors_count : $errors_per_page;
+			$errors_to_edit  = array_slice($sku_parse_error, 0, $errors_per_page, true);
+			foreach($sku_parse_error as $err_count => $error):
+				$varsku  = $error['varsku'];
+				$vendor  = $error['vendor'];
+				$type    = $error['type'];
+				$id      = $error['id'];
+				$idsugg  = $error['idsugg'];
+				$group   = $error['group'];
+				$size    = $error['size'];
+				$special = $error['special'];
+				$handle  = $error['handle'];
+				$title   = empty($error['title']) ? ucwords(str_replace("-"," ",$handle)) : $error['title'];
+				$pattern = preg_split("/\)\(/",trim($error['regex'],"/()"));
+				$oddeven = ($err_count%2==0) ? "odd" : "even";
+				$options = $db->arrayToListString($error['options']);
+				$sizeOpts= "'".str_replace('|', "', '", $pattern[4])."'";
+				// echo var_export($error,true); ?>
+			<tr class="<?php echo $err_count.' '.$oddeven.'-row'; ?>">
+				<td><?php echo $varsku ?></td>
+				<td>
+					<a href="<?php echo $products_url.$handle; ?>" target="_default" tabindex="-1"
+					   title="<?php echo "Current Options: $options"; ?>"><?php echo $title; ?></a>
+				</td>
+				<td class='sku-inputs'>
+					<input type="text" minlength="3" maxlength="3" pattern="<?php echo $pattern[0]; ?>"
+						   name="<?php echo "skus[$varsku][vendor]"; ?>" value="<?php echo $vendor; ?>"
+						   title="Please Enter 3 Capital Letter Vender Code." />
+
+					<input type="text" minlength="2" maxlength="2" pattern="<?php echo $pattern[1]; ?>"
+						   name="<?php echo "skus[$varsku][type]"; ?>" value="<?php echo $type; ?>"
+						   title="Please Enter 2 Capital Letter Type Code. (i.e. 'TT' for 'T-Shirts')" />
+					
+					<input type="text" minlength="4" maxlength="4" pattern="<?php echo $pattern[2]; ?>"
+						   name="<?php echo "skus[$varsku][id]"; ?>" value="<?php echo $id; ?>"
+						   title="Please Enter 4 Digit Design ID Number. (i.e. <?php echo $idsugg ?>)" />
+					
+					<input type="text" minlength="1" maxlength="1" pattern="<?php echo $pattern[3]; ?>"
+						   name="<?php echo "skus[$varsku][group]"; ?>" value="<?php echo $group; ?>"
+						   title="Please Enter Single (1) Capital Letter Group Code: (i.e. M, W, U, K, etc...)" />
+							<?php /** @TODO: Create Valid List/Description table and add validation for Group Codes. */ ?>
+					
+					<input type="text" minlength="2" maxlength="2" pattern="(<?php echo $pattern[4]; ?>)"
+						   name="<?php echo "skus[$varsku][size]"; ?>" value="<?php echo $size; ?>"
+						   title="Please Enter 2 Capital Letter Size Code.
+<?php /** hide tabs */			?>(One of: <?php echo $sizeOpts; ?>)" />
+					
+					<input type="text" pattern="<?php echo $pattern[5]; ?>"
+						   name="<?php echo "skus[$varsku][special]"; ?>" value="<?php echo $special; ?>"
+						   title="Additional Code Suffix (i.e. 'RTS')" />
+				</td>
+			</tr>
+		<?php endforeach; ?>
+		<tr>
+			<td colspan="3">
+				<span class="pull-left"><?php echo sprintf("Showing: %d &ndash; %d of %d", 1, $errors_per_page, $errors_count); ?></span>
+				<input type="submit" class="pull-right" value="Update&nbsp;&amp;&nbsp;Continue" />
+				<input type="hidden" name="return_to" value="/fix-options/" />
+			</td>
+		</tr>
+		</table>
+	</form>
+</main>
+<nav class=".col-xs-6 .col-lg-4">
+<!-- Nav to go here -->
+</nav>
+</div>

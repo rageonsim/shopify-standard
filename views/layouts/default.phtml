@@ -1,0 +1,50 @@
+
+<?php extract($view_data);// Make $view_data keys available as variables in the layout/view
+/*Avoid\n*/?><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+	<title><?php echo isset($html_title)&&!empty($html_title) ? $html_title : "Home Page"; ?></title>
+    <!-- Bootstrap -->
+    <link href="/assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/stylesheets/app.css" rel="stylesheet">
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+    <![endif]-->
+	<?php echo "<!-- vars: ".implode(", ", array_keys($view_data))." -->".PHP_EOL; ?>
+</head>
+<body>
+	<?php /*////////////////////////////////// Dump for Debugging ////////////////////////////////*/
+		if(isset($dumpme)): ?><!-- Dump Dumper Variable -->
+		<div style="white-space: pre;"><?php echo var_export($dumpme, true); ?></div>
+	<?php endif; /*/////////////////////////// Proceed with Layout Page: ////////////////////////*/ ?>
+	<div class="app container">
+		<header class="page-header row">
+			<h1 class="page-title"><?php echo isset($page_title) ? $page_title : $html_title; ?></h1>
+			<?php if(isset($page_lead)): ?>
+			<p class="lead"><?php echo $page_lead; ?></p>
+			<?php endif; ?>
+		</header>
+		<?php loadPartial('alerts/display-alerts', $view_data); ?>
+		<?php /** Include View in Layout (for specific contorller and action, make sure it exists) */
+		$view_path = realpath(__DIR__."/../".$controller."/".(isset($_use_view)?$_use_view:($_use_view=$action)).".phtml");
+			include (!$view_path||$_use_view=="404" ? realpath(__DIR__."/../errors/404.phtml") : $view_path);
+		/******* End inclusion of view *********************************************************** */ ?>
+	</div><?php /** Include Javascripts and Instatiate Below ***********************************/ ?>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script type="text/javascript" src="/assets/bootstrap/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="/assets/javascripts/lib.js"></script>
+	<script type="text/javascript" src="/assets/javascripts/app.js"></script>
+	<script type="text/javascript">
+	(function(w,d,App) {
+		var App = new App({
+			"option": "value"<?php if(isset($set_url)): ?>,
+			"set_url": "<?php echo $set_url; ?>"
+			<?php endif; ?>
+		});
+	})(window,document,App);
+	</script>
+</body>
+</html>

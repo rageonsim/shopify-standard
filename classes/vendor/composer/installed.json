@@ -1,0 +1,116 @@
+[
+    {
+        "name": "league/color-extractor",
+        "version": "0.1.8",
+        "version_normalized": "0.1.8.0",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/thephpleague/color-extractor.git",
+            "reference": "7d0db6eaa7a527e9b1bd7239e6db08d96c4a7bb9"
+        },
+        "dist": {
+            "type": "zip",
+            "url": "https://api.github.com/repos/thephpleague/color-extractor/zipball/7d0db6eaa7a527e9b1bd7239e6db08d96c4a7bb9",
+            "reference": "7d0db6eaa7a527e9b1bd7239e6db08d96c4a7bb9",
+            "shasum": ""
+        },
+        "require": {
+            "ext-gd": "*",
+            "php": ">=5.3.0"
+        },
+        "replace": {
+            "matthecat/colorextractor": "*"
+        },
+        "require-dev": {
+            "laravel/framework": "~4.1",
+            "orchestra/testbench": "~2.0",
+            "silex/silex": "~1.1",
+            "squizlabs/php_codesniffer": "~1.5"
+        },
+        "time": "2015-06-21 12:26:32",
+        "type": "library",
+        "installation-source": "dist",
+        "autoload": {
+            "psr-0": {
+                "League\\ColorExtractor": [
+                    "src",
+                    "tests"
+                ]
+            }
+        },
+        "notification-url": "https://packagist.org/downloads/",
+        "license": [
+            "MIT"
+        ],
+        "authors": [
+            {
+                "name": "Mathieu Lechat",
+                "email": "math.lechat@gmail.com",
+                "homepage": "http://matthecat.com",
+                "role": "Developer"
+            }
+        ],
+        "description": "Extract colors from an image as a human would do.",
+        "homepage": "https://github.com/thephpleague/color-extractor",
+        "keywords": [
+            "color",
+            "extract",
+            "human",
+            "image",
+            "palette"
+        ]
+    },
+    {
+        "name": "twbs/bootstrap",
+        "version": "v3.3.5",
+        "version_normalized": "3.3.5.0",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/twbs/bootstrap.git",
+            "reference": "16b48259a62f576e52c903c476bd42b90ab22482"
+        },
+        "dist": {
+            "type": "zip",
+            "url": "https://api.github.com/repos/twbs/bootstrap/zipball/16b48259a62f576e52c903c476bd42b90ab22482",
+            "reference": "16b48259a62f576e52c903c476bd42b90ab22482",
+            "shasum": ""
+        },
+        "replace": {
+            "twitter/bootstrap": "self.version"
+        },
+        "time": "2015-06-16 16:13:22",
+        "type": "library",
+        "extra": {
+            "branch-alias": {
+                "dev-master": "3.3.x-dev"
+            }
+        },
+        "installation-source": "dist",
+        "notification-url": "https://packagist.org/downloads/",
+        "license": [
+            "MIT"
+        ],
+        "authors": [
+            {
+                "name": "Jacob Thornton",
+                "email": "jacobthornton@gmail.com"
+            },
+            {
+                "name": "Mark Otto",
+                "email": "markdotto@gmail.com"
+            }
+        ],
+        "description": "The most popular front-end framework for developing responsive, mobile first projects on the web.",
+        "homepage": "http://getbootstrap.com",
+        "keywords": [
+            "JS",
+            "css",
+            "framework",
+            "front-end",
+            "less",
+            "mobile-first",
+            "responsive",
+            "web"
+        ]
+    }
+]

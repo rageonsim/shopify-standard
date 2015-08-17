@@ -1,0 +1,12 @@
+# .htaccess
+
+RewriteEngine on
+
+# Route Other Requests to Index for Views
+RewriteCond %{THE_REQUEST} ^[A-Z]{3,9}\ /.*index\.php
+RewriteRule ^index.php/?(.*)$ $1 [L]
+
+# Run everything else but real files through index.php
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^(.*)$ /index.php/$1?%{QUERY_STRING} [L]

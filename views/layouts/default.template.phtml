@@ -1,0 +1,23 @@
+
+<?php extract($view_data);// Make $view_data keys available as variables in the layout/view
+/*Avoid\n*/?><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+	<title><?php echo isset($html_title)&&!empty($html_title) ? $html_title : "Home Page"; ?></title>
+	<?php echo "<!-- vars: ".implode(", ", array_keys($view_data))." -->".PHP_EOL; ?>
+</head>
+<body>
+	<?php /*////////////////////////////////// Dump for Debugging ////////////////////////////////*/
+		if(isset($dumpme)): ?><!-- Dump Dumper Variable -->
+		<div style="white-space: pre;"><?php echo var_export($dumpme, true); ?></div>
+	<?php endif; /*/////////////////////////// Proceed with Layout Page: ////////////////////////*/ ?>
+	<?php /** Include View in Layout (for specific contorller and action, make sure it exists) */
+		$view_path = realpath(__DIR__."/../".$controller."/".(isset($_use_view)?$_use_view:($_use_view=$action)).".phtml");
+		include (!$view_path||$_use_view=="404" ? realpath(__DIR__."/../errors/404.phtml") : $view_path);
+	/******* End inclusion of view *********************************************************** */ ?>
+
+</body>
+</html>

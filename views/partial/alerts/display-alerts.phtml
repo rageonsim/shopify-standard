@@ -1,0 +1,34 @@
+<?php /** Check for each display alert type **/
+
+// Get database object
+// Require the ShopifyStandard Class
+require_once("../classes/ShopifyStandard.php");
+// Make Object and test for correctness
+if(!isset($db)) $db = ShopifyStandard::getInstance();
+if(!($db instanceof ShopifyStandard)) die(var_dump($db));
+?>
+<div id="page-alerts" class="row">
+<?php // Loop through errors, warning and success display messages
+foreach(array("error"=>"danger","warning"=>"warning","success"=>"success") as $alert_type=>$alert_style):
+	if(isset(${"display_$alert_type"}) && isset(${"display_$alert_type"}[0]) && !empty(${"display_$alert_type"}[0])): ?>
+	<div class="alert alert-block alert-<?php echo $alert_style; ?>">
+	  	<button type="button" class="close" data-dismiss="alert">&times;</button>
+	  	<h4><?php echo ucwords($alert_type).((substr($alert_type,-1)!='s')?'s':''); ?>!</h4>
+	  	<ol class="list">
+		<?php foreach(${"display_$alert_type"} as $alert_num => $alert_data): ?>
+			<li class="list-item">
+			<?php if(!empty($alert_data['data'])): ?>
+				<dl class="remove-bottom">
+					<dt><?php echo $alert_data['message']; ?></dt>
+					<dd><?php echo is_array($alert_data['data']) ? $db->arrayToListString($alert_data['data']) : $alert_data['data']; ?></dd>
+				</dl>
+			<?php else: ?>
+				<strong><?php echo $alert_data['message']; ?></strong>
+			<?php endif; ?>
+			</li>
+		<?php endforeach; ?>
+		</ol>
+	</div><?php
+	endif; 
+endforeach; ?>
+</div>

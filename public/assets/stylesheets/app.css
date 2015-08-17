@@ -1,0 +1,25 @@
+/**
+ * Main CSS File For ShopifyStandard Project
+ * Path: [ProjectRoot]/public/assets/stylesheets/app.css
+ */
+
+ /**
+  * Utilities
+  */
+ .remove-bottom {
+ 	margin-bottom: 0;
+ 	padding-bottom: 0;
+ }
+
+ /**
+  * App Styles
+  */
+
+.sku-inputs {
+	position: relative;
+}
+
+.sku-inputs input {
+	display: inline-block;
+	width: 5em;
+}
