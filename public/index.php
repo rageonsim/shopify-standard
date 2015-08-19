@@ -14,6 +14,11 @@
 	// Set memory limit to prevent out-of-memory issues
 	// ini_set('memory_limit', '-1'); // Unlimited memory... bad idea
 
+	// Set Debug Mode
+	define("DEBUG", true); // ideally set from config file, change to false before production
+	if(DEBUG) error_log("/*****************************************************************************************\\") &&
+			  error_log("|******************************* New SoSt Request ****************************************|")  &&
+			  error_log("\*****************************************************************************************/");
 	// Define App Root
 	define("APP_ROOT",realpath(__DIR__."/.."));
 	define("WEB_ROOT",realpath(APP_ROOT."/public"));
@@ -70,7 +75,7 @@
 	 *		["param2"]=>
 	 *			string(1) "2"
 	 *
-	 **/
+	 */
 
 	// Load Partial Function (both below shouldl be class methods, (this one particularly should be a view helper), but for quickness, procedural style)
 	if(!function_exists("loadPartial")) {
@@ -101,12 +106,10 @@
 				$controller = "index";
 				$action     = $contact;
 			}
-			error_log("// load controller: $controller, action: $action");
 			$controller_path = realpath("../controllers/".$controller.".php");
 			if(!$controller_path) $controller_path = realpath("../controllers/index.php");
-			error_log("including: $controller/$action from $controller_path");
+			error_log("// load controller: $controller, action: $action, controller_path: $controller_path");
 			return (include $controller_path);
 		}
 	}
 	$initialControllerLoad = loadController("$controller/$action");
-	// die(var_dump(array("initialControllerLoad"=>$initialControllerLoad)));

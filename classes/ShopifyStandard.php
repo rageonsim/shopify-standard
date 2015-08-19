@@ -131,22 +131,22 @@ class ShopifyStandard {
 		2	=> "Kind"
 	);
 
-	private function classVarByIndex($index, $prefix, $suffix = "S") {
-		return strtoupper($prefix.self::VALID_KEYS[$index].$suffix);
+	private function classVarByColumn($column, $prefix, $suffix = "S") {
+		return strtoupper($prefix.self::VALID_KEYS[$column].$suffix);
 	}
 
-	private function validationVarByIndex($index, $prefix = "VALID_", $suffix = "S") {
-		return $this->classVarByIndex($index,$prefix,$suffix);
+	private function validationVarByColumn($column, $prefix = "VALID_", $suffix = "S") {
+		return $this->classVarByColumn($column,$prefix,$suffix);
 	}
 
-	private function autocorrectVarByIndex($index, $prefix = "AUTO_CORRECT_", $suffix = "S") {
-		return $this->classVarByIndex($index,$prefix,$suffix);
+	private function autocorrectVarByColumn($column, $prefix = "AUTO_CORRECT_", $suffix = "S") {
+		return $this->classVarByColumn($column,$prefix,$suffix);
 	}
 
 	// utility methods for getting validation arrays
-	private function VV($index=null) { return $this->{$this->validationVarByIndex($index)}; }
+	private function VV($column=null) { return $this->{$this->validationVarByColumn($column)}; }
 	private function VK($index=null) { return self::VALID_KEYS[$index]; }
-	private function AC($index=null) { return $this->{$this->autocorrectVarByIndex($index)}; }
+	private function AC($column=null) { return $this->{$this->autocorrectVarByColumn($column)}; }
 
 	private function setValidation() {
 		// not really static, but function similarly
@@ -159,8 +159,8 @@ class ShopifyStandard {
 
 			// define column_1 valid values (key being valid, value being mutation)
 			// should be named VALID_SIZES (default, but derivitive of self::VALID_KEYS)
-			// private static ${$this->validationVarByIndex(0)} = array(
-			$col1 = $this->validationVarByIndex(0);
+			// private static ${$this->validationVarByColumn(0)} = array(
+			$col1 = $this->validationVarByColumn(0);
 			if(!isset($this->$col1) || empty($this->$col1)) {
 				$this->$col1 = array(
 					"XXS"	=> "XX-Small",
@@ -183,39 +183,20 @@ class ShopifyStandard {
 					"OS"    => "One-Size"
 				);
 			}
-
+			
 			// define column_2 valid values (key is valid color, value is hex, to be mutated, retruned from color script)
 			// VALID_COLORS
-			$col2 = $this->validationVarByIndex(1);
+			$col2 = $this->validationVarByColumn(1);
 			if(!isset($this->$col2) || empty($this->$col2)) {
-				$this->$col2 = array("Black" => "#000000","Navy" => "#000080","Dark Blue" => "#00008B","Medium Blue" => "#0000CD","Blue" => "#0000FF","Dark Green" => "#006400",
-					"Green" => "#008000","Teal" => "#008080","Dark Cyan" => "#008B8B","Deep Sky Blue" => "#00BFFF","Dark Turquoise" => "#00CED1","Medium Spring Green" => "#00FA9A","Lime" => "#00FF00",
-					"Spring Green" => "#00FF7F","Aqua" => "#00FFFF","Cyan" => "#00FFFF","Midnight Blue" => "#191970","Dodger Blue" => "#1E90FF","Light Sea Green" => "#20B2AA",
-					"Forest Green" => "#228B22","Sea Green" => "#2E8B57","Dark Slate Gray" => "#2F4F4F","Lime Green" => "#32CD32","Medium Sea Green" => "#3CB371","Turquoise" => "#40E0D0",
-					"Royal Blue" => "#4169E1","Steel Blue" => "#4682B4","Dark Slate Blue" => "#483D8B","Medium Turquoise" => "#48D1CC","Indigo" => "#4B0082","Dark Olive Green" => "#556B2F",
-					"Cadet Blue" => "#5F9EA0","Cornflower Blue" => "#6495ED","Rebecca Purple" => "#663399","Medium Aqua Marine" => "#66CDAA","Dim Gray" => "#696969","Slate Blue" => "#6A5ACD",
-					"Olive Drab" => "#6B8E23","Slate Gray" => "#708090","Light Slate Gray" => "#778899","Medium Slate Blue" => "#7B68EE","Lawn Green" => "#7CFC00","Chartreuse" => "#7FFF00",
-					"Aquamarine" => "#7FFFD4","Maroon" => "#800000","Purple" => "#800080","Olive" => "#808000","Gray" => "#808080","Sky Blue" => "#87CEEB","Light Sky Blue" => "#87CEFA",
-					"Blue Violet" => "#8A2BE2","Dark Red" => "#8B0000","Dark Magenta" => "#8B008B","Saddle Brown" => "#8B4513","Dark Sea Green" => "#8FBC8F","Light Green" => "#90EE90",
-					"Medium Purple" => "#9370DB","Dark Violet" => "#9400D3","Pale Green" => "#98FB98","Dark Orchid" => "#9932CC","Yellow Green" => "#9ACD32","Sienna" => "#A0522D",
-					"Brown" => "#A52A2A","Dark Gray" => "#A9A9A9","Light Blue" => "#ADD8E6","Green Yellow" => "#ADFF2F","Pale Turquoise" => "#AFEEEE","Light Steel Blue" => "#B0C4DE",
-					"Powder Blue" => "#B0E0E6","Fire Brick" => "#B22222","Dark Golden Rod" => "#B8860B","Medium Orchid" => "#BA55D3","Rosy Brown" => "#BC8F8F","Dark Khaki" => "#BDB76B",
-					"Silver" => "#C0C0C0","Medium Violet Red" => "#C71585","Indian Red" => "#CD5C5C","Peru" => "#CD853F","Chocolate" => "#D2691E","Tan" => "#D2B48C","Light Gray" => "#D3D3D3",
-					"Thistle" => "#D8BFD8","Orchid" => "#DA70D6","Golden Rod" => "#DAA520","Pale Violet Red" => "#DB7093","Crimson" => "#DC143C","Gainsboro" => "#DCDCDC","Plum" => "#DDA0DD",
-					"Burly Wood" => "#DEB887","Light Cyan" => "#E0FFFF","Lavender" => "#E6E6FA","Dark Salmon" => "#E9967A","Violet" => "#EE82EE","Pale Golden Rod" => "#EEE8AA",
-					"Light Coral" => "#F08080","Khaki" => "#F0E68C","Alice Blue" => "#F0F8FF","Honey Dew" => "#F0FFF0","Azure" => "#F0FFFF","Sandy Brown" => "#F4A460","Wheat" => "#F5DEB3",
-					"Beige" => "#F5F5DC","White Smoke" => "#F5F5F5","Mint Cream" => "#F5FFFA","Ghost White" => "#F8F8FF","Salmon" => "#FA8072","Antique White" => "#FAEBD7","Linen" => "#FAF0E6",
-					"Light Golden RodYellow" => "#FAFAD2","Old Lace" => "#FDF5E6","Red" => "#FF0000","Fuchsia" => "#FF00FF","Magenta" => "#FF00FF","Deep Pink" => "#FF1493","Orange Red" => "#FF4500",
-					"Tomato" => "#FF6347","Hot Pink" => "#FF69B4","Coral" => "#FF7F50","Dark Orange" => "#FF8C00","Light Salmon" => "#FFA07A","Orange" => "#FFA500","Light Pink" => "#FFB6C1",
-					"Pink" => "#FFC0CB","Gold" => "#FFD700","Peach Puff" => "#FFDAB9","Navajo White" => "#FFDEAD","Moccasin" => "#FFE4B5","Bisque" => "#FFE4C4","Misty Rose" => "#FFE4E1",
-					"Blanched Almond" => "#FFEBCD","Papaya Whip" => "#FFEFD5","Lavender Blush" => "#FFF0F5","Sea Shell" => "#FFF5EE","Cornsilk" => "#FFF8DC","Lemon Chiffon" => "#FFFACD",
-					"Floral White" => "#FFFAF0","Snow" => "#FFFAFA","Yellow" => "#FFFF00","Light Yellow" => "#FFFFE0","Ivory" => "#FFFFF0","White" => "#FFFFFF"
-				);
+				// php array return value from file include
+				$valid_colors_path = realpath(APP_ROOT."/assets/VALID_COLORS");
+				if($valid_colors_path === false) throw new Exception("Unable to find VALID_COLORS definition", 1);
+				$this->$col2 = include($valid_colors_path);
 			}
 
 			// define column_3 valid values this can be anything, so not sure yet... just needs to exist.
 			// VALID_KINDS
-			$col3 = $this->validationVarByIndex(2);
+			$col3 = $this->validationVarByColumn(2);
 			if(!isset($this->$col3) || empty($this->$col3)) {
 				$this->$col3 = array();
 			}
@@ -227,7 +208,7 @@ class ShopifyStandard {
 
 			// define column_1 auto-correct values (key being valid, value being mutation)
 			// should be named AUTO_CORRECT_SIZES (default, but derivitive of self::VALID_KEYS)
-			$col1 = $this->autocorrectVarByIndex(0);
+			$col1 = $this->autocorrectVarByColumn(0);
 			if(!isset($this->$col1) || empty($this->$col1)) {
 				$this->$col1 = array(
 					"Medoum" => "Medium"
@@ -236,14 +217,17 @@ class ShopifyStandard {
 
 			// define column_2 auto-correct values (key is misspelled color, value is corrected, to be mutated)
 			// AUTO_CORRECT_COLORS
-			$col2 = $this->autocorrectVarByIndex(1);
+			$col2 = $this->autocorrectVarByColumn(1);
 			if(!isset($this->$col2) || empty($this->$col2)) {
-				$this->$col2 = array();
+				$this->$col2 = array(
+					"Grey"  => "Gray",
+					"Multi" => "_determine_"
+				);
 			}
 
 			// define column_3 auto-correct values, this can be anything, so not sure yet... just needs to exist.
 			// AUTO_CORRECT_KINDS
-			$col3 = $this->autocorrectVarByIndex(2);
+			$col3 = $this->autocorrectVarByColumn(2);
 			if(!isset($this->$col3) || empty($this->$col3)) {
 				$this->$col3 = array();
 			}
@@ -305,16 +289,6 @@ class ShopifyStandard {
 		return $this->setDataFromExport(null) or $this->errors;
 	}
 
-	public function doNewImportColorFix($table = "new_import") {
-		$retval = false;
-		try {
-			$retval = $this->newImportColorFix();
-		} catch(Exception $e) {
-			$this->setState("exception:".$e->getCode(),"MySQLi Error: ".$e-getMessage());
-		}
-		return (count($this->errors)>0 ? $this->errors : $retval);
-	}
-
 	public function setupProductTables() {
 		return array(
 			"createExportTables" => $this->createExportTables(),
@@ -330,9 +304,9 @@ class ShopifyStandard {
 
 	public function getOptionKeyValues() {
 		return array(
-			"option_1" => $this->getOptionKeyValueByIndex(1),
-			"option_2" => $this->getOptionKeyValueByIndex(2),
-			"option_3" => $this->getOptionKeyValueByIndex(3)
+			"option_1" => $this->getOptionKeyValueByColumn(1),
+			"option_2" => $this->getOptionKeyValueByColumn(2),
+			"option_3" => $this->getOptionKeyValueByColumn(3)
 		);
 	}
 
@@ -354,6 +328,38 @@ class ShopifyStandard {
 		$arr[$newkey] = $arr[$oldkey];
 		unset($arr[$oldkey]);
 		return true; // true could be !!1 and false could be !!0, same chanacter count, I like it... just a thought.
+	}
+
+	public function nextVendorId($vendor) {
+		$max_id  = "SELECT MAX(SUBSTRING(variant_sku,6,4)) as max_id FROM org_export WHERE variant_sku LIKE '$vendor%' AND CAST(SUBSTRING(variant_sku,6,4) as UNSIGNED)!=0";
+		$result  = $this->query($max_id);
+		if(!$result) return false;
+		$result  = $result->fetch_assoc();
+		$next_id = intval($result['max_id']) + 1;
+		return $next_id;
+	}
+
+	/**
+	 * ShopifyStandard::arrayToListString()
+	 *
+	 * @todo: Make the quote options work, (remove quotes when respectively false)
+	 */
+	public function arrayToListString($arr, $key_quotes = true, $val_quotes = true) {
+		return str_replace(array('},{',':"','"'),array(', ',': "',"'"),trim(json_encode($arr),"{[]}"));
+	}
+
+	public function diedump() {
+		die(var_dump(func_get_args()))&&exit(1);
+	}
+
+	public function isError($retdata, $suffix = "_error") {
+		return !empty(
+			array_filter(
+				array_map(function($key) {
+					return stristr($key, "_error");
+				}, array_keys($retdata))
+			)
+		);
 	}
 
 	public function doFixOptions() {
@@ -402,6 +408,30 @@ class ShopifyStandard {
 		return (($tmp=preg_match($regex,$sku,$matches)) ? $matches : $tmp);
 	}
 
+	public function isLastColumn($column) {
+		if($column<0) return false;
+		return ((array_key_exists($column,self::VALID_KEYS))&&(count(self::VALID_KEYS)-1 == $column));
+	}
+
+	public function getLastColumn() {
+		return end(array_keys(self::VALID_KEYS));
+	}
+
+	public function getColorFromHex($hex) {
+		$color_map = $this->VV(array_search('Color', self::VALID_KEYS));
+		$lastColor = "Black";
+		foreach($color_map as $color=>$hexval) {
+			$strcomp = strcasecmp($hex, $hexval);
+			if($strcomp == 0) {
+				return $color;
+			} elseif($strcomp < 0) {
+				return $lastColor;
+			}
+			$lastColor = $color;
+		}
+		return $lastColor;
+	}
+
 
 	/**
 	 * Private Methods
@@ -433,8 +463,11 @@ class ShopifyStandard {
 				), $index, "display_warning");
 				continue;
 			}
-			// figure out setting the prefix/mod_suffix in constructor later
-			$table  = "products_".substr($old_sku,3,2);
+			/**
+			 * @todo: figure out setting the prefix/mod_suffix in constructor later
+			 */
+			$prefix = "products_"; $mod_suffix = "_edited";
+			$table  = $prefix.substr($old_sku,3,2).$mod_suffix;
 			$update = "UPDATE $table SET variant_sku = '$new_sku' WHERE variant_sku = '$old_sku'";
 			$result = $this->query($update);
 			if($result!==false && $this->db->affected_rows===1) {
@@ -454,7 +487,7 @@ class ShopifyStandard {
 	}
 
 	private function loadOptions($suffix = "tt", $prefix = "products_", $mod_suffix = "_edited") {
-		/** 
+		/** Method Goal 
 		 * load the current single products SKU (strip off trailing defining options (i'm thinking that includes the group one... 
 		 * the group part can be checked if a 'kind' needs it, but i think this is mainly irrelivent, or just should support the group 'kind')
 		 * those should be the keys. load the variant full skus (of the main product sku) as an array oF keys,
@@ -484,12 +517,19 @@ class ShopifyStandard {
 		$error_type = array(
 			"database_select_error",
 			"sku_parse_error",
+			"create_mod_table"
 		);
 		$error_count = array_fill_keys($error_type, 0);
 
+
+		$_org = $prefix.$suffix;
+		$_tbl = $prefix.$suffix.$mod_suffix;
+		if(!$this->query("CREATE TABLE IF NOT EXISTS $_tbl SELECT * FROM $_org")) {
+			return !($this->setState($error_type[2],"Failed Creating Mod Tables",array("table"=>$_tbl,"mod"=>$_mod)));
+		}
+
 		// start with just the tank tops table to limit the overwhelmingness
-		$_tbl  = $prefix.$suffix.$mod_suffix;
-		$query = "SELECT * FROM $table ORDER BY handle, title DESC, variant_sku";
+		$query = "SELECT * FROM $_tbl ORDER BY handle, title DESC, variant_sku";
 		if(!($$_tbl = $this->query($query))) {
 			$this->setState($error_type[0],"Error Querying Data from Database",++$error_count[$error_type[0]], array($this->db->error));
 			return $this->errors;
@@ -624,15 +664,10 @@ class ShopifyStandard {
 			
 			used fixed values to update (replace would be better) into suffixed table
 			.... actually, now that i think about it, create if not exists, fill with old data, and run update query on that.
-			.... this might be able to be temporary down the line when it's one fluid process, just for generation of the CSV, then removed
-		*/
+			.... this might be able to be temporary down the line when it's one fluid process, just for generation of the CSV, then removed */
 		$_tbl = $prefix.$suffix;
-		$_mod = $prefix.$suffix.$mod_suffix;
-		if(!$this->query("CREATE TABLE IF NOT EXISTS $_mod SELECT * FROM $_tbl")) {
-			return !($this->setState("create_mod_table","Failed Creating Mod Tables",array("table"=>$_tbl,"mod"=>$_mod)));
-		}
 		// use double $ to denote data (might start this as a trend in the future)
-		$$_tbl = $this->loadOptions($suffix);
+		$$_tbl = $this->loadOptions($suffix, $prefix, $mod_suffix);
 		// check for errors, and deal with them first if required
 		if($this->isError($$_tbl)) return $$_tbl;
 
@@ -656,22 +691,24 @@ class ShopifyStandard {
 				foreach($sizes as $size => &$specials) {
 					// loop thru specials and get array of options
 					foreach($specials as $special => &$options) {
+						// stash original options
+						$org_opts = $options;
 						// options array should be [0...2] corresponding keys/value with db values: {option_[1...3]_name: option_[1...3]_value}
-						$modifiedOptions = $options;
-
-						$var_sku = $pro_sku.$group.$size.$special;
-
+						$mod_opts = &$options;
+						// concatenate variant sku
+						$var_sku  = $pro_sku.$group.$size.$special;
+						// prep modifications array for variant sku
 						$this->modifications[$var_sku] = array_fill(0, (
-							$optcount = count($modifiedOptions)), $this->modifications[0])
-						    // Retained for reference:
-							// array( // keeps track of value modification
-							// 	"valid" => false,	// current size is valid, move on to checking key
-							// 	"mod"	=> false,	// current size needs to be changed to 2 letter code
-							// 	"mutate"=> false	// current size needs modified or is not size, and should be preserved or checked if color
-							// ));
+							$opt_count = count($mod_opts)), $this->modifications[0]);
+						    // Retained for value reference:
+								// array( // keeps track of value modification
+								// 	"valid" => false,	// current size is valid, move on to checking key
+								// 	"mod"	=> false,	// current size needs to be changed to 2 letter code
+								// 	"mutate"=> false	// current size needs modified or is not size, and should be preserved or checked if color
+								// ));
 						// get keys, use for instead of foreach because I want to control the pointer
-						for($index = 0; $index < $optcount; $index++) {
-							$this->processOption($index, $options, $modifiedOptions, array(
+						for($column = 0; $column < $opt_count; $column++) {
+							$this->processOption($column, $org_opts, $mod_opts, array(
 								"var_sku" => $var_sku,
 								"pro_sku" => $pro_sku,
 								"group"   => $group,
@@ -680,93 +717,120 @@ class ShopifyStandard {
 							));
 						}
 						// Set options to modified values
-						$options = $modifiedOptions;
+
+						/**
+						 * Dump if options change: 
+						 */
+						// if($mod_opts!==$org_opts) {
+						// 	$this->diedump(array(
+						// 		"var_sku"  => $var_sku,
+						// 		"pro_sku"  => $pro_sku,
+						// 		"group"    => $group,
+						// 		"size"     => $size,
+						// 		"special"  => $special,
+						// 		"column"   => $column,
+						// 		"org_opts" => $org_opts,
+						// 		"mod_opts" => $mod_opts
+						// 	), $this->errors);
+						// }
+						// $options = $modifiedOptions;
 					} // end of specials loop, special key with opts array
 				} // end of size loop, size key with specials arr)	
 			} // end of per variant loop (group key with size arr)
 		} //end of per product loop
 
-		die(var_dump(array(
+		$this->diedump(array(
+			"where"			=> "fixOptions after loop",
 			"classErrors"	=> $this->errors,
 			"tableData"		=> $$_tbl
-		)));
+		));
 
 	}
 
 	/**
 	 * Move Option logic outside loop, to be called from other memebers.
 	 */
-	private function processOption($index, $org_opts, &$mod_opts, $pro_args) {
-		// extract product variables into current scope. feel like it's better than globals, and makes modification easier.
-		extract($pro_args);
-		$opt_key  = array_pop(array_keys($org_opts[$index]));
-		$opt_val  = &$mod_opts[$opt_key];
+	private function processOption($column, $org_opts, &$mod_opts, $pro_args) {
+		// original option properties
+		$org_opt  = &$org_opts[$column];
+		$org_key  = @array_pop(array_keys($org_opt));
+		$org_val  = &$org_opt[$org_key];
+		// current (modified) option propterties
+		$cur_opt  = &$mod_opts[$column];
+		$cur_key  = @array_pop(array_keys($cur_opt));
+		$cur_val  = &$cur_opt[$cur_key];
 		$valueInvalid = false;
-		if(($valueInvalid=$this->checkValueValid($index,$opt_val))!==false) {
-			$mod_type = $this->howToModify[$valueInvalid]
+		$ret_val  = false;
+		// extract product variables into current scope. feel like it's better than globals, and makes modification easier.
+		extract($pro_args,EXTR_SKIP||EXTR_REFS);
+		if(($valueInvalid=$this->checkValueInvalid($column,$cur_val))!==false) {
+			$mod_type = $this->howToModify[$valueInvalid];
 			// apply modification or mutation
 			if($valueInvalid > 0) { // 0 means valid, so don't bother with it
-				$mod_method = $mod_type."Column".($index+1)."Value";
+				$mod_method = $mod_type."ColumnValue";
 				// for future determination of what was altered
-				$this->modifications[$var_sku][$index][$mod_type] = // break lnes for readabilty
-					// should return true if altered, false otherwise
-					$this->{$validatinoMethod}($opt_val, array(
-						"var_sku"  => $var_sku,
-						"pro_sku"  => $pro_sku,
-						"group"    => $group,
-						"size"     => $size,
-						"special"  => $special,
-						"index"    => $index,
-						"opt_key"  => $opt_key,
-						"org_opts" => $options,
-						"mod_opts" => $mod_opts
-					));
+				$modification = &$this->modifications[$var_sku][$column][$mod_type];
+				 // should return true if altered, false otherwise
+				$modification = $this->{$mod_method}($column, $cur_val, array(
+					"var_sku"  => $var_sku,
+					"pro_sku"  => $pro_sku,
+					"group"    => $group,
+					"size"     => $size,
+					"special"  => $special,
+					"opt_key"  => $cur_key,
+					"org_opts" => $org_opts,
+					"mod_opts" => &$mod_opts
+				));
+				// update return value
+				$retval = $modification || $retval;
 
-				// not true, just keep going, if false, errors should be handled lower (i.e. setting an error state).
 				// pass by reference, and it'll be updated if it is, and true will denote the change.
-				// // stop here because it denotes error
-				// if($mod_result!==false) return false;
-				// // otherwise, update value with result
-				// $opt_val = $mod_result;
+					// not true, just keep going, if false, errors should be handled lower (i.e. setting an error state).
+						// // stop here because it denotes error
+						// if($mod_result!==false) return false;
+						// // otherwise, update value with result
+						// $opt_val = $mod_result;
 			}
-			if($this->checkKeyValid($index, $opt_key)) {
+			if($this->checkKeyValid($column, $cur_key)) {
 				// key valid, move on
 			}
 		} else {
-			$this->setState("invalid_index_error","Options Column ".($index+1)." Not Available.", array(
+			$this->setState("invalid_column_error","Options Column ".($column+1)." Not Available.", array(
 				"var_sku"  => $var_sku,
 				"pro_sku"  => $pro_sku,
 				"group"    => $group,
 				"size"     => $size,
 				"special"  => $special,
-				"index"    => $index,
-				"opt_key"  => $opt_key,
-				"org_opts" => $options,
+				"column"   => $column,
+				"opt_key"  => $cur_key,
+				"org_opts" => $org_opts,
 				"mod_opts" => $mod_opts
 			));
+			$retval = false;
 		}
+		return $retval;
 	}
 
 	// to avoid a huge if, and make the code more readable and maintainable, define derivitive functions
-	private function checkValueValid($index, $value) {
-		if(null===($VVarr = $this->VV($index))) return false;
+	private function checkValueInvalid($column, $value) {
+		if(null===($VVarr = $this->VV($column))) return false;
 		if(array_search($value, array_keys($VVarr))) return 0;
 		elseif(array_search($value, $VVarr)) return 1;
 		else return 2;
 	}
 
-	private function checkKeyValid($index,$curkey) {
-		if(!(array_key_exists($index, self::VALID_KEYS) && (null !== self::VALID_KEYS[$index])))
-			return !($this->setState("invalid_index_error","Options Column ".($index+1)." Not Available.",array("index"=>$index,"key"=>$curkey)));
-		if(empty($curkey) || is_null($curkey)) return self::VALID_KEYS[$index];
-		if(strcasecmp($curkey, self::VALID_KEYS[$index])===0) return true;
-		// die(var_dump(array(func_get_args())));
+	private function checkKeyValid($column,$curkey) {
+		if(!(array_key_exists($column, self::VALID_KEYS) && (null !== self::VALID_KEYS[$column])))
+			return !($this->setState("invalid_column_error","Options Column ".($column+1)." Not Available.",array("column"=>$column,"key"=>$curkey)));
+		if(empty($curkey) || is_null($curkey)) return self::VALID_KEYS[$column];
+		if(strcasecmp($curkey, self::VALID_KEYS[$column])===0) return true;
+		// $this->diedump(func_get_args();
 		return in_array($curkey, self::VALID_KEYS) ? -1 : 0;
 		// check if keyed for different column
-		return !($this->setState("key_determination_error","Unable to determine if key is valid.",array("index"=>$index,"key"=>$curkey)));
+		return !($this->setState("key_determination_error","Unable to determine if key is valid.",array("column"=>$column,"key"=>$curkey)));
 	}
 
-	private function preserveColumnValue($index, $value) {
+	private function preserveColumnValue($column, $value, $args = array()) {
 		// function to check for likeness in previously fixed data, and availability to stash safely (in last column)
 
 	}
@@ -774,145 +838,307 @@ class ShopifyStandard {
 	/**
 	 * Auto Correct Value, correct by reference, return value reflects change.
 	 */
-	private function autocorrectValue($column, &$value) {
-		$acArr = $this->AC($column);
-		$keys  = array_keys($acArr);
-		$pos   = array_search($value, $keys);
-		if($pos!==false) return !!($value = $acArr[$keys[$pos]]);
-		return false;
+	private function autocorrectColumnValue($column, &$value, $args = array()) {
+		$org_val = $value;
+		$ac_arr  = $this->AC($column);
+		$keys    = array_keys($ac_arr);
+		$pos     = array_search($value, $keys);
+		if($pos === false) return false;
+		$ac_val  = $ac_arr[$keys[$pos]];
+		if(strcasecmp($ac_val, "_determine_")==0) return $this->determineColumnValue($column, $value, $args);
+		$value   = $ac_val;
+		return (strcmp($org_val, $value) !== 0);
+	}
+
+	private function determineColumnValue($column, &$value, $args = array()) {
+		// if last column, nothing to determine
+		if($this->isLastColumn($column)) return false;
+		// extract args into scope
+		extract($args,EXTR_SKIP);
+		$val_var = strtolower($this->VK($column));
+		if(isset($$val_var)) { // double $ on purpose, looking for var passed in args with same name ($size for col1)
+		        // $size for initial column 1
+			$sku_val  = @$$val_var; // the value from the sku
+			$val_arr  = $this->VV($column);
+			$test_val = $val_arr[$sku_val];
+			$value 	  = $test_val;
+			// should take care of switching for key (proper value)
+			return $this->modColumnValue($column, $value, $args);
+		} // not passed in args, determine elsewehere -- look for determinite function
+		elseif(method_exists($this, ($det_method = "determine".ucfirst($val_var)))) { 
+			return $this->{$det_method}($value, $args);
+		} else {
+			// cannot be determined, error out, return false... yatta yatta
+			return !$this->setState("indeterminate_value_error","Unable to Determine Proper Value for ".ucfirst($val_var), array(
+				"column" => $column,
+				"value"  => $value,
+				"args"   => $args
+			));
+		}
+	}
+
+	private function determineColor(&$value, $pro_args, $suffix = 'tt', $prefix = "products_", $mod_suffix = "_edited") {
+		$org_val = $value;
+		// extract pro_args into scope
+		extract($pro_args,EXTR_SKIP);
+		$_tbl    = $prefix.$suffix.$mod_suffix;
+		$select  = "SELECT variant_image FROM $_tbl WHERE variant_sku = '$var_sku' LIMIT 1";
+		if(!isset($this->colorx)) $this->colorx = new ColorExtractor;
+		if(!isset($this->color_cache)) $this->color_cache = array();
+		if(!($$_tbl = $this->query($select))) {
+			return ($this->setState("query_fail_error","MySQLi Error: ".$this->db->error, array("query"=>$select))&&false);
+		}
+		$image_src = @array_pop($$_tbl->fetch_array());
+		$image_src = strpos($image_src, '?') !== false ? stristr($image_src, '?', true) : $image_src;
+		$image_ext = substr($image_src, strrpos($image_src, '.'));
+		$image     = null;
+		// Cache color for image to reduce processing and unexpected variations on variants
+		$this->color_cache = isset($this->color_cache) ? $this->color_cache : array();
+		if(!array_key_exists($image_src, $this->color_cache)) {
+			switch($image_ext) {
+				case ".png":
+					$image = $this->colorx->loadPng($image_src);
+				break;
+				case ".jpg":
+				case ".jpeg":
+					$image = $this->colorx->loadJpeg($image_src);
+				break;
+				case ".gif":
+					$image = $this->colorx->loadGif($image_src);
+				break;
+				default:
+					return !$this->setState("image_extension_error","Image Extension Not Found", array(
+						'var_sku'   => $var_sku,
+						'_tbl'      => $_tbl,
+						"$_tbl"     => $$_tbl,
+						'image_src' => $image_src,
+						'image_ext' => $image_ext,
+						'cache'     => $this->color_cache
+					));
+				break; // end switch image_ext
+			}
+			// Check for null image
+			if(is_null($image)) {
+				return !$this->setState("image_read_error","Unable to Read Image: ".basename($image_src), array(
+					'var_sku'   => $var_sku,
+					'_tbl'      => $_tbl,
+					"$_tbl"     => $$_tbl,
+					'image_src' => $image_src,
+					'image_ext' => $image_ext,
+					'cache'     => $this->color_cache
+				), null, "display_error");
+			}
+
+			// Extract most common hex color from image
+			$palette = $image->extract();
+			if(!(is_array($palette) && (count($palette)>0)))  {
+				return !$this->setState("image_color_extract_error","Unable to Color from Image: ".basename($image_src), array(
+					'var_sku'   => $var_sku,
+					'palette'	=> $palette,
+					'_tbl'      => $_tbl,
+					"$_tbl"     => $$_tbl,
+					'image_src' => $image_src,
+					'image_ext' => $image_ext,
+					'cache'     => $this->color_cache
+				));
+			}
+			// pull most prominent (or only at this time) HEX color value off palette
+			$hex     = strtoupper(array_shift($palette));
+			if(!($tmp = preg_match("/^#[A-Z0-9]+$/", $hex))) {
+				return !$this->setState("invalid_hex_error","Invalid Hex Color Code: $hex", array(
+					'var_sku'   => $var_sku,
+					'palette'   => $palette,
+					'hex'		=> $hex,
+					'_tbl'      => $_tbl,
+					"$_tbl"     => $$_tbl,
+					'image_src' => $image_src,
+					'image_ext' => $image_ext,
+					'cache'     => $this->color_cache
+				));
+			}
+			// Get Human Friendly Color Name from HEX
+			$color   = $this->getColorFromHex($hex);
+			if(($invalid = $this->checkValueInvalid(array_search("Color", self::VALID_KEYS), $color)))  {
+				return !$this->setState("invalid_color_error","Invalid Color Value: $color", array(
+					'var_sku'   => $var_sku,
+					'palette'   => $palette,
+					'hex'		=> $hex,
+					'color'		=> $color,
+					'invalid'	=> $invalid,
+					'_tbl'      => $_tbl,
+					"$_tbl"     => $$_tbl,
+					'image_src' => $image_src,
+					'image_ext' => $image_ext,
+					'cache'     => $this->color_cache
+				));
+			}
+			// cache color
+			$this->color_cache[$image_src] = $color;
+		}
+		// update value with color from cache, and compare to original value to return boolean mutation value
+		return (($value = $this->color_cache[$image_src])!==$org_val);
+	}
+
+	private function determineKind(&$value, $var_sku, $suffix = 'tt', $prefix = 'products_', $mod_suffix = "_edited") {
+		// Kind can be anything, and shouldn't make it here really, but if so, return true
+		return true;
 	}
 
 	/**
-	 * Column 1 Mutator functions
+	 * Column Mutator functions
 	 */
 
-	private function mutateColumn1Value(&$value,$args) {
+	private function mutateColumnValue($column, &$value, $args = array()) {
 		// here the value is not a valid size, check if derivable size (like group+size, by regex), 
-		// or if is a color(run next index val check on current val), 
+		// or if is a color(run next column val check on current val), 
 		// or needs to be moved elsewhere, preserve and write from size argument
-		if(empty($value)) false;
 
-		$orgval  = $value;
-		
-		extract($args);
-		// extracted args:
+		// if last column -- which, for now, should not need mutated
+		if($this->isLastColumn($column)) return false;
+		// stash original value, in case
+		$org_val = $value;
+		// if empty determine from sku / image
+		if(empty($value)) return $this->determineColumnValue($column, $value, $args);
+		// extract args:
 			// "var_sku"  => $var_sku,
 			// "pro_sku"  => $pro_sku,
 			// "group"    => $group,
 			// "size"     => $size,
 			// "special"  => $special,
-			// "index"    => $index,
 			// "opt_key"  => $opt_key,
 			// "org_opts" => $options,
-			// "mod_opts" => $mod_opts
-
-		$validKey= strtolower($this->VK($index));
-		        // $size for initial column 1
-		$skuVal  = @$$validKey; // the value from the sku
-		$valArr  = $this->VV($index);
-		$testVal = $valArr[$size];
-		$acArr   = $this->AC($index);
-		$crctd   = $this->autocorrectValue($index,$value);
-		if($crctd) {
-			$this->setState("autocorrect_option_value","Value Auto Corrected from '".$orgval."' to '".$value."'", func_get_args());
-			// rerun validation bit. probably pull this function out from above. (this meaning the part in the small loop.)
-			$this->modifications[$var_sku][$index]['mutate'] = false;
-			die(var_dump($this->processOption($index, $options, $modifiedOptions, $modifications, array(
-				"size"	  => $size,
-				"group"  => $group,
-				"prosku"  => $prosku
-			)), $this->errors));
+			// "mod_opts" => &$mod_opts
+		if(!empty($args)) extract($args, EXTR_SKIP||EXTR_REFS);
+		// check if can be auto-corrected (simple for now, to be extended)
+		if($this->autocorrectColumnValue($column,$value)) {
+			// add state for this, may not even bother with this tho
+			$this->setState("autocorrect_option_value","Value Auto Corrected from '".$org_val."' to '".$value."'", func_get_args());
+			// re-process the option with the auto-corrected value.
+			$this->diedump($this->processOption($column, $org_opts, $mod_opts, $args), $args);
+			return !!$this->processOption($column, $org_opts, $mod_opts, array(
+				"var_sku" => $var_sku,
+				"pro_sku" => $pro_sku,
+				"group"   => $group,
+				"size"    => $size,
+				"special" => $special
+			));
 		}
-
 		/**
 		 * look to write data.. preserve data. get to the point. move or write. who give a fuck about features!!
 		 */
-		// if(empty($value)) { move toward top
-		// *
-		// * If the value is empty, set it based off the sku
-		 
 
-		// }
+		// check if value is valid for next column
+		if(!$this->isLastColumn($column) && !($next_val_invalid = $this->checkValueInvalid(($next_column = ($column+1)), $value))) {
+			// should not return false; error state
+			if($next_val_invalid===false) {
+				return $this->setState("next_val_invalid_index_error", "Invalid Column '$next_column' When Checking Next Column",array_merge(array(
+					"next_val_invalid" => $next_val_invalid,
+					"next_column"      => $next_column
+				), $args));
+			}
+			// valid next column value
 
-
-		if(true || strpos(" ", $ac_val) === false) {
-			// no spaces, don't bother checking for regex
-			// probably inverse this, but keeping for now for logical progression
-
-			// die(var_dump(
-				$this->setState("no_space","No Spaces, need Mutation", array(
-					"where"  => "NoSpace",
-					"orgval" => $orgval,
-					"value"  => $value,
-					"crctd"	 => $crctd,
-					"validKey"=>$validKey,
-					"truVal" => $skuVal,
-					"valArr" => !!$valArr,
-					"testVal"=> $testVal,
-					"acArr"  => !!$acArr,
-					"args"	 => $args
-				));
-			// ));
-		} else {
-			die(var_dump(array(
-				"where"  => "Spaces",
-				"value"  => $value,
-				"validKey"=>$validKey,
-				"truVal" => $truVal,
-				"valArr" => $valArr,
-				"testVal"=> $testVal,
-				"acArr"  => $acArr,
-				"args"	 => $args
-			)));
+			return false; // for now, to debug
 		}
 
+		if(($column > 0) && !($prev_val_invalid = $this->checkValueInvalid(($prev_column = ($column-1)), $value))) {
+			// should not return false; error state
+			if($prev_val_invalid===false) {
+				return $this->setState("prev_val_invalid_index_error", "Invalid Column '$prev_column' When Checking Previous Column",array_merge(array(
+					"prev_val_invalid" => $prev_val_invalid,
+					"prev_column"      => $prev_column
+				), $args));
+			}
+			// valid value of previous column
+			// check if already modified (at this point), and see if extra data available, preserve or dismiss
 
-		//regex with testval
-		// die(var_dump(array(
-		// 	"value"  => $value,
-		// 	"validKey"=>$validKey,
-		// 	"truVal" => $truVal,
-		// 	"valArr" => $valArr,
-		// 	"testVal"=> $testVal,
-		// 	"acArr"  => $acArr,
-		// 	"args"	 => $args
-		// )));
+			return false;// for now, to debug
+
+		}
+
+		// try to determine if valid value can be parsed from value (stash rest... or, if not, try stashing all
+		// try parsing original value for typical parts for preservation
+		$parsed = $this->parseColumnValue($column, $value, $args);
+		// unable to parse anything, or, test for single word -- either way, attempt preserve and set
+		if(($parsed===false) || ($parsed === $org_val)) { // single word, invalid, and not next column... preserve and set?
+			$this->setState("single_word_preserve_error","No Spaces, need Mutation, Preserve and Set?", array(
+				"where"   =>"single_word_preserve_error",
+				"column"  => $column,
+				"org_val" => $org_val,
+				"value"   => $value,
+				"parsed"  => $parsed,
+				"args"	  => $args,
+				"errors"  => $this->errors
+			));
+			// should return true on modification, check to preserve and set. false if no mod possible, probably error state (should not be like above)
+			return false;
+		}
+
+		/**
+		 do something about the parsed values
+		 */
+
+
+		$this->diedump(array(
+			"where"   => "end of mutateColumnValue",
+			"column"  => $column,
+			"org_val" => $org_val,
+			"value"   => $value,
+			"parsed"  => $parsed,
+			"1"		  => "======================= args ==========================",
+			"args"	  => $args,
+			"2"		  => "======================= errors ==========================",
+			"errors"  => $this->errors
+		));
 
 	}
 
-	private function modColumn1Value(&$value, args) {
+	private function parseColumnValue($column, $value, $args = array()) {
+		extract($args,EXTR_SKIP);
+		$test_params = array(); // array of test cases
+		$results = array(); // array with key of word position, value of matches
+		// check variable value for column based off valid key
+		// fill test params based on this, if guess available, use that, if not, check all valid values
+		if(isset(${($val_var = strtolower($this->VK($column)))})) { // means passed in args
+			// test value can be set from SKU, add that to test params
+			$test_params[] = $$val_var; // the value from the sku, exported from pro_args, $size in case 0
+			$valid_values  = $this->VV($column);
+			$test_params[] = $valid_values[$sku_val];
+		} else {
+			$test_params = array_keys($this->VV($column));
+		}
+		// check by word, split by space
+		$val_words   = preg_split("/[\s,]+/", $value);
+		// return original value if has no spaces, as the other validation would have picked up single words
+		if(count($val_words)===1) return array_pop($val_words); // pop off array to test later, error if different?
+		/** * @todo: improve checking regex */
+		// build loose regex, could be improved
+		$regex   = "/(".implode("|", $test_params).")/";
+		// loop through each word to check for matches
+		foreach($exp_val as $word_pos => $word) {
+			$matches = array();
+			$matched = preg_match($regex, $word, $matches);
+			if($matched) {
+				$results[$word_pos] = $matches;
+			}
+		}
+		if(!empty($results)) {
+			// do something about it matching
+			$this->diedump($value,$results,$test_params, $this->errors);
+		}
+		return !empty($results) ? $results : false;
+	}
+
+	private function modColumnValue($column, &$opt_val, $args = array()) {
 		// change size to 2 letter code
-		$size_val = array_search($value,$this->{$this->validationVarByIndex(0)});
-		if($size_val!==false) {
-			$value = $size_val;
+		$key_val = array_search($opt_val,$this->{$this->validationVarByColumn($column)});
+		if($key_val!==false) {
+			$opt_val = $key_val;
 			return true;
 		}
 		return false;
 	}
 
-	/**
-	 * Column 2 Mutator function
-	 */
-
-	private function mutateColumn2Value($value,$args) {
-		
-	}
-
-	private function modColumn2Value($value) {
-
-	}
-
-	/**
-	 * Column 3 Mutator functions
-	 */
-
-	private function mutateColumn3Value($value,$args) {
-		
-	}
-
-	private function modColumn3Value($value) {
-
-	}
 
 	// End Mutotr Functions /////////////////
 
@@ -1022,9 +1248,9 @@ class ShopifyStandard {
 		return (count($this->errors)==0);
 	}
 
-	private function getOptionKeyValueByIndex($index = 1) {
+	private function getOptionKeyValueByColumn($column = 1) {
 		$option = array();
-		$query  = "SELECT option_{$index}_name as optkey, option_{$index}_value as optval FROM org_export";
+		$query  = "SELECT option_{$column}_name as optkey, option_{$column}_value as optval FROM org_export";
 		if($result = $this->query($query)) {
 			while($row = $result->fetch_object()) {
 				if(!isset($option[$row->optkey][$row->optval])) {
@@ -1053,100 +1279,19 @@ class ShopifyStandard {
 		$this->db->query($query);
 	}
 
-	private function newImportColorFix($table = "new_import") {
-		$select = "SELECT * FROM $table";
-		if(!isset($this->colorx)) $this->colorx = new ColorExtractor;
-		if(!($results = $this->db->query($select))) {
-			return ($this->setState("query_fail","MySQLi Error: ".$this->db->error, array("query"=>$select)));
-		}
-		$sku_colors  = array();
-		$color_cache = array();
-		while($dbrow = $results->fetch_object()) {
-			$image_src = strpos($dbrow->image_src, '?') !== false ? stristr($dbrow->image_src, '?', true) : $dbrow->image_src;
-			$image_ext = substr($image_src, strrpos($image_src, '.'));
-			$image     = null;
-			if(!array_key_exists($image_src, $color_cache)) {
-				switch($image_ext) {
-					case ".png":
-						$image = $this->colorx->loadPng($image_src);
-					break;
-					case ".jpg":
-					case ".jpeg":
-						$image = $this->colorx->loadJpeg($image_src);
-					break;
-					case ".gif":
-						$image = $this->colorx->loadGif($image_src);
-					break;
-					default:
-						throw new Exception("Image Extension Not Found", 1);
-						
-				}
-				// Check for null image
-				if(is_null($image)) throw new Exception("Error Retrieving Image", 2);
-				// Extract most common hex color from image
-				$palette = $image->extract();
-				$color   = $this->getColorFromHex($palette[0]);
-				$color_cache[$image_src] = $color;
-			}
-			$sku_colors[$dbrow->variant_sku] = $color_cache[$image_src];
-		}
-		foreach($sku_colors as $sku => $color) {
-			$query = "UPDATE $table SET option_2_name = 'Color', option_2_value = '$color' WHERE variant_sku = $sku";
-
-		}
-	}
-
-	public function getColorFromHex($hex) {
-		$lastColor = "Black";
-		foreach(self::COLOR_MAP as $color=>$hexval) {
-			$strcomp = strcasecmp($hex, $hexval);
-			if($strcomp == 0) {
-				return $color;
-			} elseif($strcomp < 0) {
-				return $lastColor;
-			}
-			$lastColor = $color;
-		}
-		return $lastColor;
-	}
-
-	public function nextVendorId($vendor) {
-		$max_id  = "SELECT MAX(SUBSTRING(variant_sku,6,4)) as max_id FROM org_export WHERE variant_sku LIKE '$vendor%' AND CAST(SUBSTRING(variant_sku,6,4) as UNSIGNED)!=0";
-		$result  = $this->query($max_id);
-		if(!$result) return false;
-		$result  = $result->fetch_assoc();
-		$next_id = intval($result['max_id']) + 1;
-		return $next_id;
-	}
-
-	/**
-	 * ShopifyStandard::arrayToListString()
-	 *
-	 * @todo: Make the quote options work, (remove quotes when respectively false)
-	 */
-	public function arrayToListString($arr, $key_quotes = true, $val_quotes = true) {
-		return str_replace(array('},{',':"','"'),array(', ',': "',"'"),trim(json_encode($arr),"{[]}"));
-	}
-
-	public function diedump() {
-		die(var_dump(func_get_args()));
-	}
-
-	public function isError($retdata, $suffix = "_error") {
-		return !empty(
-			array_filter(
-				array_map(function($key) {
-					return stristr($key, "_error");
-				}, array_keys($retdata))
-			)
-		);
-	}
-
 	protected function setState($code = "shopify_standard_error", $message = "Error in ShopifyStandard", $data = null, $count = null, $caller = null) {
 		$caller = is_null($caller)? debug_backtrace()[1]['function'] : $caller;
 		$data   = is_null($data)  ? debug_backtrace() : $data;
 		$count  = is_null($count) ? ( isset($this->errors[$caller]) ? ( isset($this->errors[$caller][$code]) ? count($this->errors[$caller][$code]) : 1 ) : 1) : $count;
-		return ($this->errors[$caller][$code][$count] = array("message"=>$message,"data"=>$data)) ? $count : false;
+		try {
+			$this->errors[$caller][$code][$count] = array(
+				"message" => $message,
+				"data"    => $data
+			);
+		} catch (Exception $e) {
+			$this->diedump($code, $message, $caller, $count, $data, $e);
+		}
+		return $count;
 	}
 
 	protected function getState($code = "shopify_standard_error", $index = null, $caller = null, $just_data = true) {
