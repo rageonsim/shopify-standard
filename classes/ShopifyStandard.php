@@ -782,7 +782,7 @@ class ShopifyStandard {
 					"mod_opts" => &$mod_opts
 				));
 				// update return value
-				$retval = $modification || $retval;
+				$ret_val = $modification || $ret_val;
 
 				// pass by reference, and it'll be updated if it is, and true will denote the change.
 					// not true, just keep going, if false, errors should be handled lower (i.e. setting an error state).
@@ -806,9 +806,9 @@ class ShopifyStandard {
 				"org_opts" => $org_opts,
 				"mod_opts" => $mod_opts
 			));
-			$retval = false;
+			$ret_val = false;
 		}
-		return $retval;
+		return $ret_val;
 	}
 
 	// to avoid a huge if, and make the code more readable and maintainable, define derivitive functions
