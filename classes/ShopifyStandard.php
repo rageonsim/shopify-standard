@@ -22,7 +22,7 @@ class ShopifyStandard {
     if(!isset(self::$_instance) || is_null(self::$_instance) || !(self::$_instance instanceof ShopifyStandard)) {
       self::$_instance = New ShopifyStandard($in_path,$out_path,$gen_csv);
     }
-    // if(!empty(self::$_instance->errors)) return self::$_instance->errors;
+    // if(!empty(self::$_instance->state)) return self::$_instance->state;
     return self::$_instance;
   }
 
@@ -43,7 +43,7 @@ class ShopifyStandard {
   private $csv_cols      = array();
   private $csv_data      = array();
   private $csv_handle    = null;
-  private $errors        = array();
+  private $state        = array();
   private $last_state    = array();
   private $colorx        = null;
   private $product_types = array();
@@ -62,6 +62,7 @@ class ShopifyStandard {
   protected function __clone() {} // unecessary anyway
   protected function __construct($in_path,$out_path,$gen_csv=true) {
     if($this->debug) error_log("////////////////////////////////// START RUN (".date("Y-m-d H:i:s").") ShopifyStandard CLASS //////////////////////////////");
+    if($this->debug) register_shutdown_function("ShopifyStandard::diedump");
     $this->in_path  = is_null($in_path) ? $this->csv_path : $in_path;
     $this->out_path = is_null($out_path)? $this->csv_path."_edited_".time().".csv" : $out_path;
     $this->gen_csv  = (bool)$gen_csv;
@@ -269,7 +270,21 @@ class ShopifyStandard {
 
   public static function diedump() {
     ob_start();
-    var_dump(array(debug_backtrace()[0]["line"]=>(func_num_args()>1)?func_get_args():func_get_arg(0)));
+    $dump_data = func_num_args()==0 ? (
+      self::getInstance()->getLastState()
+    ) : (
+      func_num_args()>1 ? (
+        func_get_args()
+      ) : (
+        func_get_arg(0)
+      )
+    );
+    $dump_val  = func_num_args() ? (
+      array(debug_backtrace()[0]["line"]=>$dump_data)
+    ) : (
+      array(error_get_last()['line']=>$dump_data)
+    );
+    var_dump($dump_val);
     $dump = ob_get_clean();
     die("<pre>$dump</pre>")&&exit(1);
   }
@@ -299,14 +314,14 @@ class ShopifyStandard {
     $this->db->query("SET NAMES utf8");
     /* older db connection style
       if(!$this->db->options(MYSQLI_INIT_COMMAND, 'SET AUTOCOMMIT = 0'))
-        return (($this->connected = null) && ($this->errors = array("db"=>array("error"=>array("code"=>"set_autocommit","message"=>"Unable to set autocommit for MySQLi")))));
+        return (($this->connected = null) && ($this->state = array("db"=>array("error"=>array("code"=>"set_autocommit","message"=>"Unable to set autocommit for MySQLi")))));
       if(!$this->db->options(MYSQLI_OPT_CONNECT_TIMEOUT, 5))
-        return (($this->connected = null) && ($this->errors = array("db"=>array("error"=>array("code"=>"set_connection_timeout","message"=>"Unable to set timeout for MySQLi")))));
+        return (($this->connected = null) && ($this->state = array("db"=>array("error"=>array("code"=>"set_connection_timeout","message"=>"Unable to set timeout for MySQLi")))));
       // / **
       // * Make actual Connection
       // * /
       if(!($this->connected = $this->db->real_connect($this->host, $this->user, $this->pass, $this->db_name, $this->port)))
-        return (($this->connected = null) && ($this->errors = array("db"=>array("error"=>array("code"=>"real_connect::"+mysqli_connect_errno(),"message"=>mysqli_connect_error())))));*/
+        return (($this->connected = null) && ($this->state = array("db"=>array("error"=>array("code"=>"real_connect::"+mysqli_connect_errno(),"message"=>mysqli_connect_error())))));*/
     /**
      * All good, return connected state (which should be true), add new validation...
      */
@@ -332,13 +347,13 @@ class ShopifyStandard {
       } catch(Exception $e) {
         $this->setState("csv_data_unavailable_".$e->getCode(),"CSV Data Unavailable: ".$e->getMessage());
       }
-      if(count($this->errors) > 0) return $this->errors;
+      if(count($this->state) > 0) return $this->state;
     }
     return $this->csv_data;
   }
 
   public function writeCSVData() {
-    return $this->setDataFromExport(null) or $this->errors;
+    return $this->setDataFromExport(null) or $this->state;
   }
 
   public function setupProductTables() {
@@ -490,7 +505,7 @@ class ShopifyStandard {
   }
 
   public function getLastColumn() {
-    return end(array_keys(self::VALID_KEYS));
+    return @end(array_keys(self::VALID_KEYS));
   }
 
   public function getColorFromHex($hex) {
@@ -609,7 +624,7 @@ class ShopifyStandard {
     $query = "SELECT * FROM $_tbl WHERE handle NOT LIKE '%-wholesale' ORDER BY handle, title DESC, variant_sku";
     if(!($$_tbl = $this->query($query))) {
       $this->setState($error_type[0],"Error Querying Data from Database",++$error_count[$error_type[0]], array($this->db->error));
-      return $this->errors;
+      return $this->state;
     }
 
     $this->product_opts = array();
@@ -809,7 +824,7 @@ class ShopifyStandard {
             //    "column"   => $column,
             //    "org_opts" => $org_opts,
             //    "mod_opts" => $mod_opts
-            //  ), $this->errors);
+            //  ), $this->state);
             // }
             // $options = $modifiedOptions;
           } // end of specials loop, special key with opts array
@@ -817,8 +832,8 @@ class ShopifyStandard {
       } // end of per variant loop (group key with size arr)
     } //end of per product loop
 
-    if(count($this->errors)>0) {
-      foreach($this->errors as $type=>$data) {
+    if(count($this->state)>0) {
+      foreach($this->state as $type=>$data) {
         foreach($data as $code => $error) {
           if(count($error) > 0) return array($code => $this->getState($code, null, $type));
         }
@@ -827,9 +842,9 @@ class ShopifyStandard {
 
     self::diedump(array(
       "where"     => "fixOptions after loop",
-      "Error Total: "   => array_sum($error_counts=array_combine(array_keys($this->errors), array_map("count", array_values($this->errors)))),
+      "Error Total: "   => array_sum($error_counts=array_combine(array_keys($this->state), array_map("count", array_values($this->state)))),
       "Error Types: "   => $error_counts,
-      "Error Data: "    => $this->errors,
+      "Error Data: "    => $this->state,
       "tableData"   => $$_tbl
     ));
 
@@ -839,7 +854,7 @@ class ShopifyStandard {
    * Move Option logic outside loop, to be called from other memebers.
    */
   private function processOption($column, $org_opts, &$mod_opts, $pro_args) {
-    if(count($this->errors)>10 || self::runtime()>10000) error_log("Script Died After ".(self::runtime()/1000)." Seconds")&&self::diedump($this->errors);
+    if(count($this->state)>10 || self::runtime()>10000) error_log("Script Died After ".(self::runtime()/1000)." Seconds")&&self::diedump($this->state);
     // original option properties
     $org_opt  = &$org_opts[$column];
     $org_key  = @array_pop(array_keys($org_opt));
@@ -861,7 +876,7 @@ class ShopifyStandard {
       "size"     => $size,
       "special"  => $special,
       "column"   => $column,
-      "opt_key"  => $cur_key,
+      "cur_key"  => $cur_key,
       "org_opts" => $org_opts,
       "mod_opts" => &$mod_opts
     );
@@ -899,9 +914,9 @@ class ShopifyStandard {
       if($this->hitit && $pro_sku!=$this->debug_sku) self::diedump(array(
         "Progress:"     => array_search($this->debug_sku,array_keys($this->product_opts))."/".count($this->product_opts),
         "Product Variants:" => $this->product_opts[$this->debug_sku],
-        "Error Total:"    => array_sum($error_counts=array_combine(array_keys($this->errors), array_map("count", array_values($this->errors)))),
+        "Error Total:"    => array_sum($error_counts=array_combine(array_keys($this->state), array_map("count", array_values($this->state)))),
         "Error Types:"    => $error_counts,
-        "Error Data:"   => $this->errors
+        "Error Data:"   => $this->state
       ));
       if($pro_sku == $this->debug_sku) $this->hitit = true;
     }
@@ -931,7 +946,7 @@ class ShopifyStandard {
     // function to check for likeness in previously fixed data, and availability to stash safely (in last column)
     $dest_col = is_null($dest_col) ? $this->getLastColumn() : $dest_col;
     // error out if the destination column is greater than the last column
-    if($dest_col > $this->getLastColumn()) return $this->setErrorState("preservation_error","Unable to preserve data",array_merge(array(
+    if($dest_col > $this->getLastColumn()) return $this->setState("preservation_error","Unable to preserve data",array_merge(array(
       "column"   => $column,
       "value"    => $value,
       "dest_col" => $dest_col
@@ -944,7 +959,32 @@ class ShopifyStandard {
     // check for empty value, if so, write and clear, return true
     if(empty($dest_val)) return !!(($dest_val=$value)||($value='')); // should return true, because $value should eval to true
     // value not empty, check for swap, if dest_val valid for this column, swap and return true
-    if(!$this->checkValueInvalid($column,$dest_val)) return !!(($tmp=$value)&&(($value=$dest_val)||($dest_val=$tmp)));
+    if(!($invalid_next = $this->checkValueInvalid($column,$dest_val))) return !!(($tmp=$value)&&(($value=$dest_val)||($dest_val=$tmp)));
+    // check if needs modded to be be valid value for current column
+    // set state to check shit out... probably remove soon
+    $this->setState("process_option_with_next_column_value","Trying Re-Processing with Next Column's Value",array(
+      "column" => $column,
+      "value"  => $value,
+      "dest_col" => $dest_col,
+      "dest_key" => $dest_key,
+      "dest_val" => $dest_val,
+      "invalid"  => $invalid_next,
+      "args"     => $args
+    ));
+    $tmp_mod_opts = $mod_opts;
+    $tmp_mod_opts[$column][$cur_key] = $dest_val;
+    $tmp_mod_opts[$dest_col][$dest_key] = $value;
+    if($this->processOption($column,$org_opts,$tmp_mod_opts,$args)) return !!(($tmp=$value)&&(($value=$dest_val)||($dest_val=$tmp)));
+    // set state to check shit out... probably remove soon
+    $this->setState("preserve_next_column","Trying Recursive Preservation",array(
+      "column" => $column,
+      "value"  => $value,
+      "dest_col" => $dest_col,
+      "dest_key" => $dest_key,
+      "dest_val" => $dest_val,
+      "invalid"  => $invalid_next,
+      "args"     => $args
+    ));
     // still data, try to preserve and write data to next column
     return $this->preserveColumnValue($dest_col,$dest_val,$args, ($dest_col+1));
   }
@@ -1162,11 +1202,11 @@ class ShopifyStandard {
       // the preserveColumnValue function should return true if current value altered (like everything else),
       // if the data was preserved, clear the column, cause it was preserved, and needs to be determined (which if empty, will happen on recursion)
       // if the data was set, (as in borrowed from the next column), data changed, so probably check for valid value again
-      ShopifyStandard::diedump($column,$value,$next_column,$args,($this->preserveColumnValue($column,$value,$args,$next_column)) ? (
-        $this->processOption($column,$value,$args)
-      ) : $this->getLastState());
+      // ShopifyStandard::diedump($column,$value,$next_column,$args,($this->preserveColumnValue($column,$value,$args,$next_column)) ? (
+      //   $this->processOption($column,$org_opts,$mod_opts,$args)
+      // ) : $this->getLastState());
       return ($this->preserveColumnValue($column,$value,$args,$next_column)) ? (
-        $this->processOption($column,$value,$args)
+        $this->processOption($column,$org_opts,$mod_opts,$args)
       ) : false;
 
       return ShopifyStandard::diedump(array_merge(array(
@@ -1234,7 +1274,7 @@ class ShopifyStandard {
       "1"     => "======================= args ==========================",
       "args"    => $args,
       "2"     => "======================= errors ==========================",
-      "errors"  => $this->errors
+      "errors"  => $this->state
     ));
 
   }
@@ -1279,7 +1319,7 @@ class ShopifyStandard {
       //  '$value'=>$value,
       //  '$results'=>$results,
       //  '$test_params'=>$test_params,
-      //  '$this->errors'=>$this->errors
+      //  '$this->state'=>$this->state
       // ));
     }
     return !empty($results) ? $results : false;
@@ -1405,7 +1445,7 @@ class ShopifyStandard {
         $this->setState("query_fail","MySQLi Error: ".$this->db->error, array("query"=>$query));
       }
     }
-    return (count($this->errors)==0);
+    return (count($this->state)==0);
   }
 
   private function getOptionKeyValueByColumn($column = 1) {
@@ -1443,9 +1483,9 @@ class ShopifyStandard {
     $caller = is_null($caller)? debug_backtrace()[1]['function'] : $caller;
     $data   = is_null($data)  ? debug_backtrace() : $data;
     $count  = is_null($count) ? (
-      (isset($this->errors[$caller])) ? (
-        (isset($this->errors[$caller][$code])) ? (
-          count($this->errors[$caller][$code])
+      (isset($this->state[$caller])) ? (
+        (isset($this->state[$caller][$code])) ? (
+          count($this->state[$caller][$code])
         ) : (
           0
         )
@@ -1456,13 +1496,13 @@ class ShopifyStandard {
       $count
     );
     try {
-      $this->errors[$caller][$code][$count] = array(
+      $this->state[$caller][$code][$count] = array(
         "message" => $message,
         "data"    => $data
       );
       $this->last_state = array(
         "code"   => $code,
-        "index"  => $index,
+        "index"  => $count,
         "caller" => $caller
       );
     } catch (Exception $e) {
@@ -1473,27 +1513,27 @@ class ShopifyStandard {
 
   protected function getState($code = "shopify_standard_error", $index = null, $caller = null, $just_data = true) {
     $caller = is_null($caller) ? debug_backtrace()[1]['function'] : $caller;
-    if(is_null($this->errors[$caller][$code])) return array("getError_error"=>array(
+    if(is_null($this->state[$caller][$code])) return array("getError_error"=>array(
       "caller" => $caller,
       "code"   => $code,
       "index"  => $index,
-      "errors" => $this->errors
+      "errors" => $this->state
     ));
 
     return is_null($index) ? (
       !!$just_data ? (
         array_map(function($arr) {
           return $arr['data'];
-        }, $this->errors[$caller][$code])
+        }, $this->state[$caller][$code])
       ) : (
-        $this->errors[$caller][$code]
+        $this->state[$caller][$code]
       )
     ) : ( 
-      array_key_exists($index,$this->errors[$caller][$code]) ? (
+      array_key_exists($index,$this->state[$caller][$code]) ? (
         !!$just_data ? (
-          $this->errors[$caller][$code][$index]['data']
+          $this->state[$caller][$code][$index]['data']
         ) : (
-          $this->errors[$caller][$code][$index]
+          $this->state[$caller][$code][$index]
         )
       ) : (
         -1
