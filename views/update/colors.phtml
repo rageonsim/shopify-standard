@@ -1,0 +1,82 @@
+<?php
+/**
+ * Colors View For Update Controller
+ * Filepath: [Project]/views/update/colors.phtml
+ **/
+?>
+<div class="row">
+<main role="main" class=".col-xs-12 .col-sm-6 .col-lg-8">
+	<!-- Update/Colors -->
+	<form action="<?php echo "/$save_action/"; ?>" method="post" enctype="multipart/form-data"<?php if(!!$auto_advance) echo 'class="auto-advance"'; ?>>
+		<table class="table table-bordered table-striped table-hover">
+			<tr>
+				<th>SKU:</th>
+				<th>Product:</th>
+				<th>Edit&nbsp;Color:</th>
+			</tr>
+		<?php // Loop through each error sku
+			// take a sub-set of erros: amount defined in controller
+			$errors_count    = count($color_needs_determination_error);
+			$errors_per_page = $errors_count < $errors_per_page ? $errors_count : $errors_per_page;
+			$errors_to_edit  = array_slice($color_needs_determination_error, 0, $errors_per_page, true);
+			foreach($errors_to_edit as $err_count => $error):
+				$var_sku    = $error['var_sku'];
+				$pro_sku    = $error['pro_sku'];
+				$cur_val    = $error['cur_val'];
+				$ajax_url   = $error['ajax_url'];
+				$pro_data   = $db->getProductDataBySku($var_sku);
+				$handle     = $pro_data['handle'];
+				$title      = empty($pro_data['title']) ? ucwords(str_replace("-"," ",$handle)) : $pro_data['title'];
+				$oddeven    = ($err_count%2==0) ? "odd" : "even";
+				$options    = $db->arrayToListString($error['mod_opts']);
+				$image_src  = @($pro_data['variant_image'] | $pro_data['image_src']);
+				$val_colors = "((?:".implode("|",array_keys($db->VV(array_search("Color", $db->VK())))).")(?:,\s)?)+";
+				// Shopifystandard::diedump(array(
+				// 	'$var_sku'  => $var_sku,
+				// 	'$pro_sku'  => $pro_sku,
+				// 	'$handle'   => $handle,
+				// 	'$title'    => $title,
+				// 	'$oddeven'  => $oddeven,
+				// 	'$options'  => $options,
+				// 	'$pro_data' => $pro_data
+				// ));
+				// echo var_export($error,true); ?>
+			<tr class="<?php echo $err_count.' '.$oddeven.'-row'; ?>">
+				<td style="vertical-align: middle; text-align: center;"><?php echo $var_sku ?></td>
+				<td style="vertical-align: middle; text-align: center;">
+					<a href="<?php echo $products_url.$handle; ?>" target="_default" tabindex="-1"
+					   title="<?php echo "Current Options: $options"; ?>"><?php
+					   if(!empty($image_src)): 
+					   	?><img src="<?php echo $image_src; ?>" alt="<?php echo $title; ?>" style="max-width: 200px;margin: 0 auto;display: block;" /><?php
+					   endif; ?>
+					   <span><?php echo $title; ?></span>
+				    </a>
+				</td>
+				<td style="vertical-align: middle;" class='color-inputs'>
+					<label for="<?php echo $var_sku; ?>" style="cursor: pointer;">Current Value: '<?php echo $cur_val; ?>'</label><br/>
+					<input class="<?php echo str_replace('/','-',$ajax_url); ?> undetermined unedited" 
+						   style="width: 100%;" type="text" minlength="3" maxlength="256" 
+						   pattern="<?php echo $val_colors; ?>" name="<?php echo "colors[$var_sku][color]"; ?>" 
+						   data-ajax-url="<?php echo $ajax_url; ?>" data-ajax-data='<?php echo json_encode($error); ?>'
+						   id="$var_sku" placeholder="Edit or Loading Suggestion..." value="<?php echo $cur_val; ?>" 
+						   title="Please Enter a Valid Color. Suggestion Will Automatically fill, click 'Current Value' to Reset." />
+				</td>
+			</tr>
+		<?php endforeach; ?>
+		<tr>
+			<td colspan="3">
+				<span class="pull-left"><?php echo sprintf("Showing: %d &ndash; %d of %d", 1, $errors_per_page, $errors_count); ?></span>
+				<input type="submit" class="pull-right" value="Update&nbsp;&amp;&nbsp;Continue" />
+				<span class="pull-right">&nbsp;or&nbsp;</span>
+				<input type="submit" class="pull-right" name="auto_advance" value="Update&nbsp;&amp;&nbsp;Auto&ndash;Advance"
+					   title="Will automatically submit the form after filling suggestions until all color errors are fixed." />
+				<input type="hidden" name="return_to" value="/<?php echo REFERER(); ?>/" />
+			</td>
+		</tr>
+		</table>
+	</form>
+</main>
+<nav class=".col-xs-6 .col-lg-4">
+<!-- Nav to go here -->
+</nav>
+</div>

@@ -19,7 +19,7 @@
 			$errors_count    = count($sku_parse_error);
 			$errors_per_page = $errors_count < $errors_per_page ? $errors_count : $errors_per_page;
 			$errors_to_edit  = array_slice($sku_parse_error, 0, $errors_per_page, true);
-			foreach($sku_parse_error as $err_count => $error):
+			foreach($errors_to_edit as $err_count => $error):
 				$varsku  = $error['varsku'];
 				$vendor  = $error['vendor'];
 				$type    = $error['type'];
@@ -61,8 +61,7 @@
 					
 					<input type="text" minlength="2" maxlength="2" pattern="(<?php echo $pattern[4]; ?>)"
 						   name="<?php echo "skus[$varsku][size]"; ?>" value="<?php echo $size; ?>"
-						   title="Please Enter 2 Capital Letter Size Code.
-<?php /** hide tabs */			?>(One of: <?php echo $sizeOpts; ?>)" />
+						   title="Please Enter 2 Capital Letter Size Code. (One of: <?php echo $sizeOpts; ?>)" />
 					
 					<input type="text" pattern="<?php echo $pattern[5]; ?>"
 						   name="<?php echo "skus[$varsku][special]"; ?>" value="<?php echo $special; ?>"
@@ -74,7 +73,7 @@
 			<td colspan="3">
 				<span class="pull-left"><?php echo sprintf("Showing: %d &ndash; %d of %d", 1, $errors_per_page, $errors_count); ?></span>
 				<input type="submit" class="pull-right" value="Update&nbsp;&amp;&nbsp;Continue" />
-				<input type="hidden" name="return_to" value="/fix-options/" />
+				<input type="hidden" name="return_to" value="/<?php echo REFERER(); ?>/" />
 			</td>
 		</tr>
 		</table>

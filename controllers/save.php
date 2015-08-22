@@ -30,7 +30,7 @@ switch($action) {
 	// Save Skus, posted from update form
 	case 'skus':
 		$sku_data  = $_POST['skus'];
-		$return_to = isset($_POST['return_to']) ? trim($_POST['return_to'],'/') : REFERER;
+		$return_to = isset($_POST['return_to']) ? trim($_POST['return_to'],'/') : REFERER();
 		if(!$sku_data) return loadController($return_to, array("error"=>$db->setState("null_sku_data_error","No SKU Data Received by the Server",$_POST,"loadOptions")));		
 		$fix_skus = $db->doUpdateSkus($sku_data);
 		// if(array_key_exists("error", $fix_skus)) {

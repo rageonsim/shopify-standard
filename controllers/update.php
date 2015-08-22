@@ -37,28 +37,31 @@ switch($action) {
 		// $view_data['dumpme'] = $data;
 		if(!isset($view_data)) $view_data = array();
 		if(!array_key_exists("sku_parse_error", $view_data)) {
-			$fix = $db->doFixOptions();
-			if($db->isError($fix)) {
-				$error_codes = array_keys($fix);
-				$error_code  = array_pop($error_codes);
-				switch($error_code) {
-					case "sku_parse_error":
-						$view_data = $fix;
-					break;
-					default:
-						// dump unknown errors
-						$view_data['dumpme'] = array("error_code"=>$error_code,"unknown_error"=>$fix);
-					break; // uneccessary, but looks better
-				}
-			} else {
-				// redirect to fix-options
-				return loadController("fix-options", $fix, 1);
-			}
+			return loadController("fix-options", $view_data, 1);
 		}
 		$view_data = array_merge($view_data, array(
 			'products_url'    => "https://www.rageon.com/products/",
 			'errors_per_page' => 20,
 			'save_action'     => "save/skus"
+		));
+	break;
+	// Update Skus, i.e. show form for data editing
+	case 'colors':
+		$html_title .= " - Colors";
+		$view_data['page_title'] = "Update Colors Form";
+		$view_data['page_lead']  = "The Following Colors Must Be Determined:";
+		// $data = $view_data;
+		// $view_data = array();
+		// $view_data['dumpme'] = $data;
+		if(!isset($view_data)) $view_data = array();
+		if(!array_key_exists("color_needs_determination_error", $view_data)) {
+			return loadController("fix-options", $view_data, 1);
+		}
+		$view_data = array_merge($view_data, array(
+			'products_url'    => "https://www.rageon.com/products/",
+			'errors_per_page' => 20,
+			'save_action'     => "save/colors",
+			'auto_advance'    => !!(isset($_COOKIE['ShopifyStandard::auto_advance:color'])&&(intval($_COOKIE['ShopifyStandard::auto_advance:color'])===1))
 		));
 	break;
 	default:

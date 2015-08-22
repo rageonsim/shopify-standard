@@ -53,7 +53,10 @@ switch($action) {
 			switch($error_code) {
 				case "sku_parse_error":
 					// sku parse error
-					return loadController("update/skus", array_merge($view_data,$fix), 1);
+					return loadController("update/skus", array_merge($view_data, $fix), 1);
+				break;
+				case "color_needs_determination_error":
+					return loadController("update/colors", array_merge($view_data, $fix), 1);
 				break;
 				default:
 					// dump unknown errors
@@ -86,7 +89,22 @@ switch($action) {
 				}
 			}
 			$view_data['dumpme'][] = $testarr; */
-		$view_data['dumpme'] = 'test';
+		$view_data['dumpme'] = $db->checkValueInvalid(1,"Black",array(
+          "var_sku"=>"DTGTT0006UXL",
+          "pro_sku"=>"DTGTT0006",
+          "group"=>"U",
+          "size"=>"XL",
+          "special"=>"",
+          "opt_key"=>"Color",
+          "org_opts"=>array(array(
+              "Size"=> "X-Large"),array(
+              "Color"=> "Black"),array(
+              ""=> "")),
+          "mod_opts"=>array(array(
+              "Size"=> "XL"),array(
+              "Color"=> "Black"),array(
+              ""=> ""))
+        ));
 	break;
 	// Index Action
 	case 'index':

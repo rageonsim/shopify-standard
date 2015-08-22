@@ -11,26 +11,43 @@
 	 *
 	 **/
 
-	// Set memory limit to prevent out-of-memory issues
-	// ini_set('memory_limit', '-1'); // Unlimited memory... bad idea
-
 	// Set Debug Mode
 	define("DEBUG", true); // ideally set from config file, change to false before production
+
+	if(DEBUG) {
+		// Set memory limit to prevent out-of-memory issues
+		ini_set('memory_limit', '-1'); // Unlimited memory... bad idea
+		// increase execution time to 60 seconds for debugging
+		set_time_limit(60);
+	}
+
 	if(DEBUG) error_log("/*****************************************************************************************\\") &&
 			  error_log("|******************************* New SoSt Request ****************************************|")  &&
 			  error_log("\*****************************************************************************************/");
 	// Define App Root
 	define("APP_ROOT",realpath(__DIR__."/.."));
 	define("WEB_ROOT",realpath(APP_ROOT."/public"));
-	define("REFERER", (isset($_SERVER['HTTP_REFERER'])) ? (
-		(strpos($tmp = trim(substr($_SERVER['HTTP_REFERER'],strlen($_SERVER["HTTP_ORIGIN"])),'/'),'/')!==false) ? (
-			$tmp
-		) : (
-			"index/$tmp"
-		)
-	) : (
-		"index/index"
-	));
+
+	$_REFERER = null;
+	function REFERER() {
+		global $_REFERER;
+		if(func_num_args()==0) {
+			return is_null($_REFERER) ? REFERER(null,null) : $_REFERER;
+		} elseif(func_num_args()==1) {
+			$_REFERER = @array_shift(func_get_args());
+		} else {
+			REFERER((isset($_SERVER['HTTP_REFERER'])) ? (
+				(strpos($tmp = trim(substr($_SERVER['HTTP_REFERER'],strlen($_SERVER["HTTP_ORIGIN"])),'/'),'/')!==false) ? (
+					$tmp
+				) : (
+					"index/$tmp"
+				)
+			) : (
+				"index/index"
+			));
+		}
+	}
+	REFERER(/* Set Initial $_REFERER Value on Page Load */);
 
 	$request = $_SERVER['REQUEST_URI'];
 	@list($controller, $action, $req_etc_raw) =
@@ -93,14 +110,16 @@
 	// Include the controller
 	if(!function_exists("loadController")) {
 		function loadController($contact = "index/index", $__data = null, $rewrite = 0) {
+			global $controller, $action;
 			$view_data = is_array($__data) ? $__data : array($__data);
 			if(strpos($contact, "/")!==false) {
+				if(is_numeric($rewrite) && $rewrite===1) {
+					$view_data['set_url'] = "/$contact/";
+					REFERER(($controller!=='index'?"$controller/":'').$action);
+				}
 				list($controller, $action, $extra) = array_pad(explode("/", $contact, 3),3,null);
 				if(!is_null($extra)) {
 					$view_data['extra'] = $extra;
-				}
-				if(is_numeric($rewrite) && $rewrite===1) {
-					$view_data['set_url'] = "/$contact/";
 				}
 			} else {
 				$controller = "index";
