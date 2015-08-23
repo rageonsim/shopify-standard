@@ -82,50 +82,50 @@ class ShopifyStandard {
    */
 
   const COL_MAP = array(
-    "handle"                  => "Handle",
-    "title"                   => "Title",
-    "body_html"                 => "Body (HTML)",
-    "vendor"                  => "Vendor",
-    "type"                    => "Type",
-    "tags"                    => "Tags",
-    "published"                 => "Published",
-    "option_1_name"               => "Option1 Name",
-    "option_1_value"              => "Option1 Value",
-    "option_2_name"               => "Option2 Name",
-    "option_2_value"              => "Option2 Value",
-    "option_3_name"               => "Option3 Name",
-    "option_3_value"              => "Option3 Value",
-    "variant_sku"               => "Variant SKU",
-    "variant_grams"               => "Variant Grams",
-    "variant_inventory_tracker"         => "Variant Inventory Tracker",
-    "variant_inventory_qty"           => "Variant Inventory Qty",
-    "variant_inventory_policy"          => "Variant Inventory Policy",
-    "variant_fulfillment_service"       => "Variant Fulfillment Service",
-    "variant_price"               => "Variant Price",
-    "variant_compare_at_price"          => "Variant Compare At Price",
-    "variant_requires_shipping"         => "Variant Requires Shipping",
-    "variant_taxable"             => "Variant Taxable",
-    "variant_barcode"             => "Variant Barcode",
-    "image_src"                 => "Image Src",
-    "image_alt_text"              => "Image Alt Text",
-    "gift_card"                 => "Gift Card",
-    "google_shopping_mpn"           => "Google Shopping / MPN",
-    "google_shopping_gender"          => "Google Shopping / Gender",
-    "google_shopping_age_group"         => "Google Shopping / Age Group",
+    "handle"                                  => "Handle",
+    "title"                                   => "Title",
+    "body_html"                               => "Body (HTML)",
+    "vendor"                                  => "Vendor",
+    "type"                                    => "Type",
+    "tags"                                    => "Tags",
+    "published"                               => "Published",
+    "option_1_name"                           => "Option1 Name",
+    "option_1_value"                          => "Option1 Value",
+    "option_2_name"                           => "Option2 Name",
+    "option_2_value"                          => "Option2 Value",
+    "option_3_name"                           => "Option3 Name",
+    "option_3_value"                          => "Option3 Value",
+    "variant_sku"                             => "Variant SKU",
+    "variant_grams"                           => "Variant Grams",
+    "variant_inventory_tracker"               => "Variant Inventory Tracker",
+    "variant_inventory_qty"                   => "Variant Inventory Qty",
+    "variant_inventory_policy"                => "Variant Inventory Policy",
+    "variant_fulfillment_service"             => "Variant Fulfillment Service",
+    "variant_price"                           => "Variant Price",
+    "variant_compare_at_price"                => "Variant Compare At Price",
+    "variant_requires_shipping"               => "Variant Requires Shipping",
+    "variant_taxable"                         => "Variant Taxable",
+    "variant_barcode"                         => "Variant Barcode",
+    "image_src"                               => "Image Src",
+    "image_alt_text"                          => "Image Alt Text",
+    "gift_card"                               => "Gift Card",
+    "google_shopping_mpn"                     => "Google Shopping / MPN",
+    "google_shopping_gender"                  => "Google Shopping / Gender",
+    "google_shopping_age_group"               => "Google Shopping / Age Group",
     "google_shopping_google_product_category" => "Google Shopping / Google Product Category",
-    "seo_title"                 => "SEO Title",
-    "seo_description"             => "SEO Description",
-    "google_shopping_adwords_grouping"      => "Google Shopping / AdWords Grouping",
-    "google_shopping_adwords_labels"      => "Google Shopping / AdWords Labels",
-    "google_shopping_condition"         => "Google Shopping / Condition",
-    "google_shopping_custom_product"      => "Google Shopping / Custom Product",
-    "google_shopping_custom_label_0"      => "Google Shopping / Custom Label 0",
-    "google_shopping_custom_label_1"      => "Google Shopping / Custom Label 1",
-    "google_shopping_custom_label_2"      => "Google Shopping / Custom Label 2",
-    "google_shopping_custom_label_3"      => "Google Shopping / Custom Label 3",
-    "google_shopping_custom_label_4"      => "Google Shopping / Custom Label 4",
-    "variant_image"               => "Variant Image",
-    "variant_weight_unit"           => "Variant Weight Unit"
+    "seo_title"                               => "SEO Title",
+    "seo_description"                         => "SEO Description",
+    "google_shopping_adwords_grouping"        => "Google Shopping / AdWords Grouping",
+    "google_shopping_adwords_labels"          => "Google Shopping / AdWords Labels",
+    "google_shopping_condition"               => "Google Shopping / Condition",
+    "google_shopping_custom_product"          => "Google Shopping / Custom Product",
+    "google_shopping_custom_label_0"          => "Google Shopping / Custom Label 0",
+    "google_shopping_custom_label_1"          => "Google Shopping / Custom Label 1",
+    "google_shopping_custom_label_2"          => "Google Shopping / Custom Label 2",
+    "google_shopping_custom_label_3"          => "Google Shopping / Custom Label 3",
+    "google_shopping_custom_label_4"          => "Google Shopping / Custom Label 4",
+    "variant_image"                           => "Variant Image",
+    "variant_weight_unit"                     => "Variant Weight Unit"
   );
   
   // valid keys for the column of index+1, verbose for readibility
@@ -184,7 +184,7 @@ class ShopifyStandard {
           "4X"  => "XXXX-Large",
           "5XL" => "XXXXX-Large",
           "5X"  => "XXXXX-Large",
-          "OS"    => "One-Size"
+          "OS"  => "One-Size"
         );
       }
       
@@ -269,9 +269,12 @@ class ShopifyStandard {
 
 
   public static function diedump() {
-    ob_start();
+    if(func_num_args()==0&&is_null(error_get_last())) return null;
     $dump_data = func_num_args()==0 ? (
-      self::getInstance()->getLastState()
+      array(
+        "error_message" => error_get_last(),
+        "last_state"    => self::getInstance()->getLastState()
+      )
     ) : (
       func_num_args()>1 ? (
         func_get_args()
@@ -280,12 +283,14 @@ class ShopifyStandard {
       )
     );
     $dump_val  = func_num_args() ? (
-      array(debug_backtrace()[0]["line"]=>$dump_data)
+      array(($line = debug_backtrace()[0]["line"])=>$dump_data)
     ) : (
-      array(error_get_last()['line']=>$dump_data)
+      array(($line = error_get_last()['line'])=>$dump_data)
     );
-    var_dump($dump_val);
+    ob_start();
+      var_dump($dump_val);
     $dump = ob_get_clean();
+    error_log("DieDumped (with ".func_num_args()." args) on line: ". $line);
     die("<pre>$dump</pre>")&&exit(1);
   }
 
@@ -483,6 +488,13 @@ class ShopifyStandard {
     return (array_sum($available)==0);
   }
 
+  public function getValueValidTrue($column) {
+    $VVarr = $this->VV($column);
+    return array_filter(array_map(function($_key,$_value, $column) {
+      return ($_key == array_search($_value, $this->VV($column)))?$_key:false;
+    }, array_keys($VVarr), array_values($VVarr),array_fill(0, count($VVarr), $column)));
+  }
+
   public function getSkuValidRegex() {
     $matches = array();
     $validskusizes = implode("|", array_filter(
@@ -494,9 +506,19 @@ class ShopifyStandard {
     return "/([A-Z]{3})([a-zA-Z0-9]{2})(\d{4})([A-Z])(".$validskusizes.")(.*)/";
   }
 
+  public function getValueValidRegex($column, $strict = false) {
+    $test_valid = ($strict) ? $this->getValueValidTrue($column) : array_keys($this->VV($column));
+    return "/^((".implode("|",$test_valid).")(,\s)?)+$/";
+  }
+
   public function getSkuValid($sku) {
     $regex = $this->getSkuValidRegex();
     return (($tmp=preg_match($regex,$sku,$matches)) ? $matches : $tmp);
+  }
+
+  public function getValueValid($column, $value, $strict = false) {
+    $regex = $this->getValueValidRegex($column, $strict);
+    return (($tmp=preg_match($regex,$value,$matches)) ? $matches : $tmp);
   }
 
   public function isLastColumn($column) {
@@ -854,14 +876,16 @@ class ShopifyStandard {
    * Move Option logic outside loop, to be called from other memebers.
    */
   private function processOption($column, $org_opts, &$mod_opts, $pro_args) {
-    if(count($this->state)>10 || self::runtime()>10000) error_log("Script Died After ".(self::runtime()/1000)." Seconds")&&self::diedump($this->state);
+    // if(count($this->state)>10 || self::runtime()>10000) error_log("Script Died After ".(self::runtime()/1000)." Seconds")&&self::diedump($this->state);
     // original option properties
     $org_opt  = &$org_opts[$column];
-    $org_key  = @array_pop(array_keys($org_opt));
+    $org_keys = array_keys($org_opt);
+    $org_key  = array_pop($org_keys);
     $org_val  = &$org_opt[$org_key];
     // current (modified) option propterties
     $cur_opt  = &$mod_opts[$column];
-    $cur_key  = @array_pop(array_keys($cur_opt));
+    $cur_keys = array_keys($cur_opt);
+    $cur_key  = array_pop($cur_keys);
     $cur_val  = &$cur_opt[$cur_key];
     $valueInvalid = false;
     $ret_val  = false;
@@ -926,8 +950,8 @@ class ShopifyStandard {
   // to avoid a huge if, and make the code more readable and maintainable, define derivitive functions
   public function checkValueInvalid($column, $value) {
     if(null===($VVarr = $this->VV($column))) return false;
-    if(array_search($value, array_keys($VVarr))!==false) return 0;
-    elseif(array_search($value, $VVarr)!==false) return 1;
+    if($this->getValueValid($column, $value, true)) return 0;
+    elseif($this->getValueValid($column,$value,false)||array_search($value, $VVarr)!==false) return 1;
     else return 2;
   }
 
@@ -942,7 +966,7 @@ class ShopifyStandard {
     return !($this->setState("key_determination_error","Unable to determine if key is valid.",array("column"=>$column,"key"=>$curkey)));
   }
 
-  private function preserveColumnValue($column, $value, &$args = array(), $dest_col = null) {
+  private function preserveColumnValue($column, &$value, &$args = array(), $dest_col = null) {
     // function to check for likeness in previously fixed data, and availability to stash safely (in last column)
     $dest_col = is_null($dest_col) ? $this->getLastColumn() : $dest_col;
     // error out if the destination column is greater than the last column
@@ -954,8 +978,9 @@ class ShopifyStandard {
     // extract args into current scope (by reference)
     if(!empty($args)) extract($args,EXTR_SKIP|EXTR_REFS);
     // get current value of destination column
-    $dest_key = @array_pop(array_keys($mod_opts[$dest_col]));
-    $dest_val = &$mod_opts[$dest_col][$dest_key];
+    $dest_keys = array_keys($mod_opts[$dest_col]);
+    $dest_key  = array_pop($dest_keys);
+    $dest_val  = &$mod_opts[$dest_col][$dest_key];
     // check for empty value, if so, write and clear, return true
     if(empty($dest_val)) return !!(($dest_val=$value)||($value='')); // should return true, because $value should eval to true
     // value not empty, check for swap, if dest_val valid for this column, swap and return true
@@ -999,6 +1024,17 @@ class ShopifyStandard {
     // if($this->checkValueInvalid($column, $cap_val, $args)==0) {
     //  return !!($value = $cap_val);
     // }
+    
+    // look for comma, and lack of space, if has comma, and matches this regex, needs space after comma
+    if(strpos($value, ',')!==false) { // if comma and didn't pass before, must need space
+      $tmp_val = preg_replace("/,([^\s])",", $1",$value);
+      if(!is_null($tmp_val)) {
+        if(strcomp($value,$tmp_val)!==0) {
+          return !!($value = $tmp_val);
+        }
+      }
+    }
+
     // look in autocorrect array
     $ac_arr  = $this->AC($column);
     $keys    = array_keys($ac_arr);
@@ -1160,6 +1196,7 @@ class ShopifyStandard {
       // "org_opts" => $options,
       // "mod_opts" => &$mod_opts
     if(!empty($args)) extract($args, EXTR_SKIP|EXTR_REFS);
+
     // check if can be auto-corrected (simple for now, to be extended)
     if($this->autocorrectColumnValue($column,$value,$args)) return true;
       // update: just return true, error in autocorrectColumnValue if need
@@ -1208,75 +1245,79 @@ class ShopifyStandard {
       return ($this->preserveColumnValue($column,$value,$args,$next_column)) ? (
         $this->processOption($column,$org_opts,$mod_opts,$args)
       ) : false;
-
-      return ShopifyStandard::diedump(array_merge(array(
-        "next_val_invalid" => $next_val_invalid,
-        "next_column"      => $next_column
-      ), $args));
     }
 
     // i'm starting to no be overly sure you should check the previous column... above should have swaped if necessary... hmmm.
-    if(($column > 0) && !($prev_val_invalid = $this->checkValueInvalid(($prev_column = ($column-1)), $value))) {
-      // should not return false; error state
-      if($prev_val_invalid===false) {
-        return $this->setState("prev_val_invalid_index_error", "Invalid Column '$prev_column' When Checking Previous Column",array_merge(array(
-          "prev_val_invalid" => $prev_val_invalid,
-          "prev_column"      => $prev_column
-        ), $args));
-      }
-      // valid value of previous column
-      // check if already modified (at this point), and see if extra data available, preserve or dismiss
-      // if($prev_val_invalid === 0) { // has to be, the only way to get here
-      
-      return ShopifyStandard::diedump(array_merge(array(
-        "prev_val_invalid" => $prev_val_invalid,
-        "prev_column"      => $prev_column
-      ), $args));
+      // if(($column > 0) && !($prev_val_invalid = $this->checkValueInvalid(($prev_column = ($column-1)), $value))) {
+      //   // should not return false; error state
+      //   if($prev_val_invalid===false) {
+      //     return $this->setState("prev_val_invalid_index_error", "Invalid Column '$prev_column' When Checking Previous Column",array_merge(array(
+      //       "prev_val_invalid" => $prev_val_invalid,
+      //       "prev_column"      => $prev_column
+      //     ), $args));
+      //   }
+      //   // valid value of previous column
+      //   // check if already modified (at this point), and see if extra data available, preserve or dismiss
+      //   // if($prev_val_invalid === 0) { // has to be, the only way to get here
+        
+      //   return ShopifyStandard::diedump(array_merge(array(
+      //     "prev_val_invalid" => $prev_val_invalid,
+      //     "prev_column"      => $prev_column
+      //   ), $args));
 
-      return false;// for now, to debug
+      //   return false;// for now, to debug
 
-    }
+      // }
 
     // try to determine if valid value can be parsed from value (stash rest... or, if not, try stashing all
     // try parsing original value for typical parts for preservation
-    $parsed = $this->parseColumnValue($column, $value, $args);
-    // unable to parse anything, or, test for single word -- either way, attempt preserve and set
-    if(($parsed===false) || ($parsed === $org_val)) { // single word, invalid, and not next column... preserve and set?
-      $this->setState("single_word_preserve_error","No Spaces, need Mutation, Preserve and Set?", array(
-        "where"   =>"single_word_preserve_error",
-        "column"  => $column,
-        "org_val" => $org_val,
-        "value"   => $value,
-        "parsed"  => $parsed,
-        "args"    => $args
-      ));
+    if($parsed = $this->parseColumnValue($column, $value, $args)) {
+      // do something about it matching
+      $matches = array_column($parsed, 0);
+      $extras  = array_diff($this->getValueWords($value), $matches);
+
+      // preserve exta values
+      $this->preserveColumnValue($column, $value, $args);
+      // update value & re-process
+      $value = implode(", ", $matches);
+
+      // return whether actually modified (although it should be)
+      return (strcasecmp($value,$org_val)==0); 
+    } else { // single word, invalid, and not next column... preserve and set?
+      // unable to parse anything, or, test for single word -- either way, attempt preserve and set
+        // $this->setState("single_word_preserve_error","No Spaces, need Mutation, Preserve and Set?", array(
+        //   "where"   =>"single_word_preserve_error",
+        //   "column"  => $column,
+        //   "org_val" => $org_val,
+        //   "value"   => $value,
+        //   "parsed"  => $parsed,
+        //   "args"    => $args
+        // ));
       // should return true on modification, check to preserve and set. false if no mod possible, probably error state (should not be like above)
-      return false;
+      return ($this->preserveColumnValue($column,$value,$args)) ? (
+        $this->processOption($column,$org_opts,$mod_opts,$args)
+      ) : false;
     }
 
-    
-    // do something about it matching
-    $matches = array_column($parsed, 0);
-    $extras  = array_diff($this->getValueWords($value), $matches);
-    //$value = implode(", ", $matches);
-
-    //return (strcasecmp($value,$org_val)==0);
-
-
-    self::diedump(array(
-      "where"   => "end of mutateColumnValue",
-      "column"  => $column,
-      "org_val" => $org_val,
-      "value"   => $value,
-      "parsed"  => $parsed,
-      "matches" => $matches,
-      "extras"  => $extras,
-      "1"     => "======================= args ==========================",
-      "args"    => $args,
-      "2"     => "======================= errors ==========================",
-      "errors"  => $this->state
-    ));
-
+    // should now be unreachable
+      if(isset($this->skip_some)&&$this->skip_some==2) {
+        self::diedump(array(
+          "where"   => "end of mutateColumnValue",
+          "column"  => $column,
+          "org_val" => $org_val,
+          "value"   => $value,
+          "parsed"  => $parsed,
+          "matches" => $matches,
+          "extras"  => $extras,
+          "1"       => "======================= args ==========================",
+          "args"    => $args,
+          "2"       => "======================= errors ==========================",
+          "errors"  => $this->state
+        ));
+      } else {
+        $this->skip_some = isset($this->skip_some) ? ++$this->skip_some : 1;
+      }
+    return (strcasecmp($value,$org_val)==0);
   }
 
   private function parseColumnValue($column, $value, $args = array()) {
@@ -1286,9 +1327,6 @@ class ShopifyStandard {
     // check variable value for column based off valid key
     // fill test params based on this, if guess available, use that, if not, check all valid values
     if(isset(${($val_var = strtolower($this->VK($column)))})) { // means passed in args
-      // $vars = get_defined_vars();
-      // unset($vars['this']);
-      // self::diedump($vars);
       // test value can be set from SKU, add that to test params
       $test_params[] = $sku_val = $$val_var; // the value from the sku, exported from pro_args, $size in case 0
       $valid_values  = $this->VV($column);
@@ -1301,7 +1339,7 @@ class ShopifyStandard {
     // check by word, split by space
     $val_words   = $this->getValueWords($value);
     // return original value if has no spaces, as the other validation would have picked up single words
-    if(count($val_words)===1) return array_pop($val_words); // pop off array to test later, error if different?
+    if(count($val_words)===1) return false; // pop off array to test later, error if different?.. nah, just return false
     /** * @todo: improve checking regex */
     // build loose regex, could be improved
     $regex   = "/(".implode("|", $test_params).")/";
@@ -1330,8 +1368,14 @@ class ShopifyStandard {
   }
 
   private function modColumnValue($column, &$opt_val, &$args = array()) {
-    // change size to 1-3 letter valid google code
-    $key_val = array_search($opt_val,$this->VV($column));
+    $VVarr = $this->VV($column);
+    // look for invalid short code
+    if(array_key_exists($opt_val,$VVarr)) {
+      // needs to be switched for valid short code below
+      $value = $VVarr[$value];
+    }
+    // change size word to 1-3 letter valid google code
+    $key_val = array_search($opt_val,$VVarr);
     if($key_val!==false) {
       $opt_val = $key_val;
       return true;
@@ -1339,8 +1383,14 @@ class ShopifyStandard {
     return false;
   }
 
+  private function updateManipulatedData() {
+    // array_column for 'valid', and array diff the skus to get only non-valid options
+    // update those.
+  }
 
-  // End Mutotr Functions /////////////////
+  /**
+  ///////////////////////////// End Mutotr Functions /////////////////////////////
+   */
 
   private function getCSVHandle($filepath = null, $mode = "r") {
     if(is_null($this->csv_handle)) {

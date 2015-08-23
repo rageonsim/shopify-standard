@@ -34,7 +34,8 @@
 		if(func_num_args()==0) {
 			return is_null($_REFERER) ? REFERER(null,null) : $_REFERER;
 		} elseif(func_num_args()==1) {
-			$_REFERER = @array_shift(func_get_args());
+			$func_args = func_get_args();
+			$_REFERER  = array_shift($func_args);
 		} else {
 			REFERER((isset($_SERVER['HTTP_REFERER'])) ? (
 				(strpos($tmp = trim(substr($_SERVER['HTTP_REFERER'],strlen($_SERVER["HTTP_ORIGIN"])),'/'),'/')!==false) ? (
@@ -50,8 +51,9 @@
 	REFERER(/* Set Initial $_REFERER Value on Page Load */);
 
 	$request = $_SERVER['REQUEST_URI'];
-	@list($controller, $action, $req_etc_raw) =
-		explode('/', trim(strpos($request,'?') !== false ? stristr($request,'?',true) : $request,'/'), 3);
+	$req_arr = explode('/', trim(strpos($request,'?') !== false ? stristr($request,'?',true) : $request,'/'), 3);
+	list($controller, $action, $req_etc_raw) = (count($req_arr)==3) ? $req_arr : array_pad($req_arr, 3, "");
+
 	// Parse Additional path from Request String
 	$req_etc = "";
 	foreach(explode('/', trim($req_etc_raw,'/')) as $key=>$param) {
