@@ -19,9 +19,9 @@ require_once("../classes/ShopifyStandard.php");
 if(!isset($db)) $db = ShopifyStandard::getInstance();
 if(!($db instanceof ShopifyStandard)) die(var_dump($db));
 
-// set the default value for $layout, which is 'default', and inherit or default view_data
+// set the default value for $layout, which is 'default', and inherit or default state
 $layout     = !isset($layout)    || empty($layout)    ? 'default' : $layout;
-$view_data  = !isset($view_data) || empty($view_data) ?  array()  : $view_data;
+$state  = !isset($state) || empty($state) ?  array()  : $state;
 
 $html_title = 'Update';
 
@@ -30,16 +30,16 @@ switch($action) {
 	// Update Skus, i.e. show form for data editing
 	case 'skus':
 		$html_title .= " - Skus";
-		$view_data['page_title'] = "Update Skus Form";
-		$view_data['page_lead']  = "The Following SKUs Contain Issues: <small>(which cannot be autocorrected)</small>";
-		// $data = $view_data;
-		// $view_data = array();
-		// $view_data['dumpme'] = $data;
-		if(!isset($view_data)) $view_data = array();
-		if(!array_key_exists("sku_parse_error", $view_data)) {
-			return loadController("fix-options", $view_data, 1);
+		$state['page_title'] = "Update Skus Form";
+		$state['page_lead']  = "The Following SKUs Contain Issues: <small>(which cannot be autocorrected)</small>";
+		// $data = $state;
+		// $state = array();
+		// $state['dumpme'] = $data;
+		if(!isset($state)) $state = array();
+		if(!array_key_exists("sku_parse_error", $state)) {
+			return loadController("fix-options", $state, 1);
 		}
-		$view_data = array_merge($view_data, array(
+		$state = array_merge($state, array(
 			'products_url'    => "https://www.rageon.com/products/",
 			'errors_per_page' => 20,
 			'save_action'     => "save/skus"
@@ -48,16 +48,16 @@ switch($action) {
 	// Update Skus, i.e. show form for data editing
 	case 'colors':
 		$html_title .= " - Colors";
-		$view_data['page_title'] = "Update Colors Form";
-		$view_data['page_lead']  = "The Following Colors Must Be Determined:";
-		// $data = $view_data;
-		// $view_data = array();
-		// $view_data['dumpme'] = $data;
-		if(!isset($view_data)) $view_data = array();
-		if(!array_key_exists("color_needs_determination_error", $view_data)) {
-			return loadController("fix-options", $view_data, 1);
+		$state['page_title'] = "Update Colors Form";
+		$state['page_lead']  = "The Following Colors Must Be Determined:";
+		// $data = $state;
+		// $state = array();
+		// $state['dumpme'] = $data;
+		if(!isset($state)) $state = array();
+		if(!array_key_exists("color_needs_determination_error", $state)) {
+			return loadController("fix-options", $state, 1);
 		}
-		$view_data = array_merge($view_data, array(
+		$state = array_merge($state, array(
 			'products_url'    => "https://www.rageon.com/products/",
 			'errors_per_page' => 20,
 			'save_action'     => "save/colors",

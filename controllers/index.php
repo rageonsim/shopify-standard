@@ -21,7 +21,7 @@ if(!($db instanceof ShopifyStandard)) die(var_dump($db));
 
 // set the default value for $layout, which is 'default'
 $layout     = !isset($layout)    || empty($layout)    ? 'default' : $layout;
-$view_data  = !isset($view_data) || empty($view_data) ?  array()  : $view_data;
+$state  = !isset($state) || empty($state) ?  array()  : $state;
 
 $html_title = '';
 
@@ -29,7 +29,7 @@ $html_title = '';
 switch($action) {
 	case 'setup':
 		$_use_view = "test";
-		$view_data['dumpme'] = 
+		$state['dumpme'] = 
 			array(
 				//"getCSVData" => $db->getCSVData(),
 				"setup_data" => $db->setupProductTables()
@@ -38,10 +38,10 @@ switch($action) {
 	case 'options':
 		$_use_view = "test";
 		// lists count of options and values
-		//$view_data['dumpme'] = $db->getOptionKeyValues();
+		//$state['dumpme'] = $db->getOptionKeyValues();
 
 		// gets current options for each product, and variant, with respect to the missing keys on variants
-		$view_data['dumpme'] = $db->standardizeOptions("tt");
+		$state['dumpme'] = $db->standardizeOptions("tt");
 	break;
 	// Fix Options
 	case 'fix-options':
@@ -53,31 +53,31 @@ switch($action) {
 			switch($error_code) {
 				case "sku_parse_error":
 					// sku parse error
-					return loadController("update/skus", array_merge($view_data, $fix), 1);
+					return loadController("update/skus", array_merge($state, $fix), 1);
 				break;
 				case "color_needs_determination_error":
-					return loadController("update/colors", array_merge($view_data, $fix), 1);
+					return loadController("update/colors", array_merge($state, $fix), 1);
 				break;
 				default:
 					// dump unknown errors
-					$view_data['dumpme'] = array("error_code"=>$error_code,"unknown_error"=>$fix);
+					$state['dumpme'] = array("error_code"=>$error_code,"unknown_error"=>$fix);
 				break; // uneccessary, but looks better
 			}
 		} else {
 			// dump data if no error, for now anyways
-			$view_data['dumpme'] = array("no_error"=>$fix);
+			$state['dumpme'] = array("no_error"=>$fix);
 		}
 	break;
 	case 'test':
-		$view_data['dumpme'][] = array();
+		$state['dumpme'][] = array();
 		/* Old Tests
-			$view_data['dumpme'][] = $db->query("SELECT * FROM org_export WHERE body_html LIKE '%Make%everyone%' AND handle LIKE '3d%'")->fetch_object();
-			$view_data['dumpme'][] = $db->getColorFromHex("#FECB89");
-			$view_data['dumpme'][] = $db->doNewImportColorFix();
-			$view_data['dumpme'][] = $db->selectProductData();
+			$state['dumpme'][] = $db->query("SELECT * FROM org_export WHERE body_html LIKE '%Make%everyone%' AND handle LIKE '3d%'")->fetch_object();
+			$state['dumpme'][] = $db->getColorFromHex("#FECB89");
+			$state['dumpme'][] = $db->doNewImportColorFix();
+			$state['dumpme'][] = $db->selectProductData();
 
-			$view_data['dumpme'] = array();
-			$view_data['dumpme'][] = $testarr = array("test"=>array("subtest"=>false,"subtest2"=>false),"tast"=>array("subtast"=>false,"subtast2"=>false));
+			$state['dumpme'] = array();
+			$state['dumpme'][] = $testarr = array("test"=>array("subtest"=>false,"subtest2"=>false),"tast"=>array("subtast"=>false,"subtast2"=>false));
 			foreach($testarr as $testkey=>&$test) {
 				foreach($test as $key=>&$val) {
 					$val = true;
@@ -88,8 +88,8 @@ switch($action) {
 					// unset($testarr[$testkey]);
 				}
 			}
-			$view_data['dumpme'][] = $testarr; */
-		$view_data['dumpme'] = $db->checkValueInvalid(1,"Black",array(
+			$state['dumpme'][] = $testarr; */
+		$state['dumpme'] = $db->checkValueInvalid(1,"Black",array(
           "var_sku"=>"DTGTT0006UXL",
           "pro_sku"=>"DTGTT0006",
           "group"=>"U",
@@ -108,10 +108,10 @@ switch($action) {
 	break;
 	// Index Action
 	case 'index':
-		// $view_data['csv_data'] = 
+		// $state['csv_data'] = 
 		//$db->getCSVData();
-		//$view_data['queries'] = $db->writeCSVData();
-		$view_data['download'] = array(
+		//$state['queries'] = $db->writeCSVData();
+		$state['download'] = array(
 			"url" => realpath("{WEB_ROOT}"),
 			"text"=> "Click here to download generated CSV"
 		);

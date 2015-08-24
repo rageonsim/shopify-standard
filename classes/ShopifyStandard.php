@@ -22,7 +22,7 @@ class ShopifyStandard {
     if(!isset(self::$_instance) || is_null(self::$_instance) || !(self::$_instance instanceof ShopifyStandard)) {
       self::$_instance = New ShopifyStandard($in_path,$out_path,$gen_csv);
     }
-    // if(!empty(self::$_instance->state)) return self::$_instance->state;
+    // if(!empty(self::$_instance->states)) return self::$_instance->states;
     return self::$_instance;
   }
 
@@ -31,7 +31,7 @@ class ShopifyStandard {
    */
 
   private $debug      = true; // should be a boolean representing whether to display certain debug info. false for production. (duh).
-  private $debug_sku  = "AOPTT1167";
+  // private $debug_sku  = "last"; // "AOPTT1167"; // product sku without variant codes to dump after last variant, any string to dump after all variants
 
   private $user          = 'root';
   private $pass          = 'root';
@@ -43,8 +43,8 @@ class ShopifyStandard {
   private $csv_cols      = array();
   private $csv_data      = array();
   private $csv_handle    = null;
-  private $state        = array();
-  private $state_data    = array();
+  private $states        = array();
+  private $states_data    = array();
   private $colorx        = null;
   private $product_types = array();
   /** product data in array with keys being the type_code */
@@ -279,7 +279,7 @@ class ShopifyStandard {
     $dump_data = func_num_args()==0 ? (
       array(
         "error_message" => error_get_last(),
-        "state_data"    => self::getInstance()->getLastState(
+        "states_data"    => self::getInstance()->getLastState(
           !is_null(self::$died_num)           ? self::$died_num           : 10, 
           !is_null(self::$died_filter_code)   ? self::$died_filter_code   : null, 
           !is_null(self::$died_filter_group)  ? self::$died_filter_group  : null
@@ -324,6 +324,17 @@ class ShopifyStandard {
     return $newArray;
   }
 
+  public static function array_keys_multi(array $array, $max_depth = -1, $depth = 1) {
+    $keys = array();
+    foreach ($array as $key => $value) {
+      $keys[] = $key;
+      if ($depth!=$max_depth&&is_array($array[$key])) {
+        $keys = array_merge($keys, self::array_keys_multi($array[$key],$max_depth,($depth+1)));
+      }
+    }
+    return $keys;
+  }
+
 
   /**
    * Public Instance Methods
@@ -339,7 +350,7 @@ class ShopifyStandard {
     $this->db->query("SET NAMES utf8");
     // @prune(1);
     /**
-     * All good, return connected state (which should be true), add new validation...
+     * All good, return connected states (which should be true), add new validation...
      */
     return $this->connected;
 
@@ -350,21 +361,21 @@ class ShopifyStandard {
   }
 
   public function getLastState($how_many = 1, $filter_code = null, $filter_group = null) {
-    if(empty($this->state_data)) return null;
-    $filtered_state_data = $this->state_data;
-    array_walk($filtered_state_data, function(&$state_data, $state_num, $filters) {
+    if(empty($this->states_data)) return null;
+    $filtered_states_data = $this->states_data;
+    array_walk($filtered_states_data, function(&$states_data, $states_num, $filters) {
       extract($filters);
-      if(!is_null($filter_code)&&strcasecmp($state_data['code'],$filter_code)!==0) $state_data = null;
-      if(!is_null($filter_group)&&strcasecmp($state_data['group'],$filter_group)!==0) $state_data = null;
+      if(!is_null($filter_code)&&strcasecmp($states_data['code'],$filter_code)!==0) $states_data = null;
+      if(!is_null($filter_group)&&strcasecmp($states_data['group'],$filter_group)!==0) $states_data = null;
     }, array(
       "filter_code"   => $filter_code,
       "filter_group" => $filter_group
     ));
-    $filtered_state_data = array_filter($filtered_state_data);
+    $filtered_states_data = array_filter($filtered_states_data);
     $ret_arr = array();
-    foreach(array_reverse($filtered_state_data, true) as $state_num => $state_data) {
-      extract($state_data);
-      $ret_arr[$state_num] = $this->getState($code,$index,$group,false);
+    foreach(array_reverse($filtered_states_data, true) as $states_num => $states_data) {
+      extract($states_data);
+      $ret_arr[$states_num] = $this->getState($code,$index,$group,false);
       if(count($ret_arr)==$how_many) break;
     }
     return $ret_arr;
@@ -377,13 +388,13 @@ class ShopifyStandard {
       } catch(Exception $e) {
         $this->setState("csv_data_unavailable_".$e->getCode(),"CSV Data Unavailable: ".$e->getMessage());
       }
-      if(count($this->state) > 0) return $this->state;
+      if(count($this->states) > 0) return $this->states;
     }
     return $this->csv_data;
   }
 
   public function writeCSVData() {
-    return $this->setDataFromExport(null) or $this->state;
+    return $this->setDataFromExport(null) or $this->states;
   }
 
   public function setupProductTables() {
@@ -439,11 +450,12 @@ class ShopifyStandard {
     return $this->loadOptions($suffix, $prefix, $mod_suffix);
   }
 
-  public function switchKey(&$arr, $oldkey, $newkey) {
-    if(!array_key_exists($oldkey, $arr)) {
+  public function switchKey(&$arr, $oldkey, $newkey, $column = null) {
+    if(!array_key_exists($oldkey, $arr)&&!array_key_exists($newkey,$arr)) {
       return !($this->setState("key_not_found","Key '".$oldkey."' Not Available.",array("oldkey"=>$oldkey,"newkey"=>$newkey,"arr"=>$arr)));
     }
     if(array_key_exists($newkey, $arr)) {
+      if(!is_null($column)&&strcasecmp($newkey,$this->VK($column))===0) return false;
       return !($this->setState("new_key_exists","Key ".$newkey." Already Exists; Data will be overwritten.", array(
         "oldkey" => $oldkey,
         "newkey" => $newkey,
@@ -647,7 +659,7 @@ class ShopifyStandard {
     $query = "SELECT * FROM $_tbl WHERE handle NOT LIKE '%-wholesale' ORDER BY handle, title DESC, variant_sku";
     if(!($$_tbl = $this->query($query))) {
       $this->setState($error_type[0],"Error Querying Data from Database",++$error_count[$error_type[0]], array($this->db->error));
-      return $this->state;
+      return $this->states;
     }
 
     $this->product_opts = array();
@@ -746,7 +758,7 @@ class ShopifyStandard {
     if($this->isError($$_tbl)) return $$_tbl;
 
 
-    // ended up using this format for return data and uses values to call mutation functions and set state
+    // ended up using this format for return data and uses values to call mutation functions and set states
     $this->howToModify = array_keys($this->modifications[0]); // @prune(5);
 
     // No errors, loop thru data and call required methods to fix it.
@@ -780,6 +792,30 @@ class ShopifyStandard {
                 "special" => $special
               ));
             }
+            // Die on specific product (defined at top of class, if defined)
+            if($this->debug && isset($this->debug_sku)) {
+              if(!isset($this->hitit)) $this->hitit = false;
+              if($this->hitit && $pro_sku!=$this->debug_sku) self::diedump(array(
+                "Progress:"         =>  ($pro_cnt=array_search($pro_sku,array_keys($this->product_opts)))."/".count($this->product_opts) . 
+                                        "(".count(array_diff(self::array_keys_multi(array_slice($this->product_opts,0,($pro_cnt+1)),3),self::array_keys_multi($this->product_opts,2))).
+                                        "/".count(array_diff(self::array_keys_multi($this->product_opts,3),self::array_keys_multi($this->product_opts,2))).")",
+                "Error Total:"      =>  array_sum($error_counts=array_combine(array_keys($this->states), array_map("count", array_values($this->states)))),
+                "Error Groups:"     =>  $error_counts,
+                "Error Codes:"      =>  array_diff(self::array_keys_multi($this->states, 2),array_keys($error_counts)),
+                "Product Variants:" =>  $this->product_opts[$pro_sku],
+                "Variant"           =>  $var_sku,
+                "org_opts"          =>  $org_opts,
+                "mod_opts"          =>  $mod_opts,
+                "Error Data:"       =>  $this->states
+                                        // self::getInstance()->getLastState(
+                                        //   !is_null(self::$died_num)           ? self::$died_num           : 10, 
+                                        //   !is_null(self::$died_filter_code)   ? self::$died_filter_code   : null, 
+                                        //   !is_null(self::$died_filter_group)  ? self::$died_filter_group  : null
+                                        // )
+              ));
+              if($pro_sku == $this->debug_sku) $this->hitit = true; // blow, if set but did not match, dump at end
+              if(count($this->product_opts) - intval(array_search($pro_sku,array_keys($this->product_opts))) == 1) $this->hitit = true;
+            }
             // Set options to modified values // @prune(7);
             // $options = $modifiedOptions;
             
@@ -788,8 +824,8 @@ class ShopifyStandard {
       } // end of per variant loop (group key with size arr)
     } //end of per product loop
 
-    if(count($this->state)>0) {
-      foreach($this->state as $type=>$data) {
+    if(count($this->states)>0) {
+      foreach($this->states as $type=>$data) {
         foreach($data as $code => $error) {
           if(count($error) > 0) return array($code => $this->getState($code, null, $type));
         }
@@ -798,9 +834,9 @@ class ShopifyStandard {
 
     self::diedump(array(
       "where"     => "fixOptions after loop",
-      "Error Total: "   => array_sum($error_counts=array_combine(array_keys($this->state), array_map("count", array_values($this->state)))),
+      "Error Total: "   => array_sum($error_counts=array_combine(array_keys($this->states), array_map("count", array_values($this->states)))),
       "Error Types: "   => $error_counts,
-      "Error Data: "    => $this->state,
+      "Error Data: "    => $this->states,
       "tableData"   => $$_tbl
     ));
 
@@ -810,7 +846,7 @@ class ShopifyStandard {
    * Move Option logic outside loop, to be called from other memebers.
    */
   private function processOption($column, $org_opts, &$mod_opts, $pro_args) {
-    // if(count($this->state)>10 || self::runtime()>10000) error_log("Script Died After ".(self::runtime()/1000)." Seconds")&&self::diedump($this->state);
+    // if(count($this->states)>10 || self::runtime()>10000) error_log("Script Died After ".(self::runtime()/1000)." Seconds")&&self::diedump($this->states);
     // original option properties
     $org_opt  = &$org_opts[$column];
     $org_keys = array_keys($org_opt);
@@ -838,7 +874,7 @@ class ShopifyStandard {
       "org_opts" => $org_opts,
       "mod_opts" => &$mod_opts
     );
-    // check for valid value, skip if error (and add error state)
+    // check for valid value, skip if error (and add error states)
     if(($valueInvalid=$this->checkValueInvalid($column,$cur_val))===false) {
       $this->setState("invalid_column_error","Options Column ".($column+1)." Not Available.", $proc_data);
     }
@@ -856,23 +892,9 @@ class ShopifyStandard {
     }
     // check key for validity (was going to do this first, but might need old key for preservation above)
     if(!$this->checkKeyValid($column, $cur_key)) {
-      $ret_val = $this->switchKey($cur_opt, $cur_key, $this->VK($column)) || $ret_val;
+      $ret_val = $this->switchKey($cur_opt, $cur_key, $this->VK($column), $column) || $ret_val;
     }
 
-    // Die on specific product (defined at top of class, if defined)
-    if($this->debug && isset($this->debug_sku)) {
-      if(!isset($this->hitit)) $this->hitit = false;
-      if($this->hitit && $pro_sku!=$this->debug_sku) self::diedump(array(
-        "Progress:"     => array_search($this->debug_sku,array_keys($this->product_opts))."/".count($this->product_opts),
-        "Product Variants:" => $this->product_opts[$this->debug_sku],
-        "org_opts"=>$org_opts,
-        "mod_opts"=>$mod_opts,
-        "Error Total:"    => array_sum($error_counts=array_combine(array_keys($this->state), array_map("count", array_values($this->state)))),
-        "Error Types:"    => $error_counts,
-        "Error Data:"   => $this->state
-      ));
-      if($pro_sku == $this->debug_sku) $this->hitit = true;
-    }
     return $ret_val;
   }
 
@@ -910,106 +932,30 @@ class ShopifyStandard {
     $dest_keys = array_keys($mod_opts[$dest_col]);
     $dest_key  = array_pop($dest_keys);
     $dest_val  = &$mod_opts[$dest_col][$dest_key];
-    // log preservation data
-    // $this->setState("try_preserve_data","Trying to Preserve Data",array(
-    //   "caller" => debug_backtrace()[0]['line'],
-    //   "column" => intval($column),
-    //   "value"  => "$value",
-    //   "dest_col" => intval($dest_col),
-    //   "dest_key" => "$dest_key",
-    //   "dest_val" => "$dest_val",
-    //   "args"     => self::array_copy($args),
-    //   "modifications" => self::array_copy($this->modifications[$var_sku])
-    // ));
     // check for empty value, if so, write and clear, return true
     if(empty($dest_val)) {
-      // $this->setState("empty_dest_value","Destination Clear; Clear Current and Presere in Destination Column.",array(
-      //   "column" => intval($column),
-      //   "value"  => "$value",
-      //   "dest_col" => intval($dest_col),
-      //   "dest_key" => "$dest_key",
-      //   "dest_val" => "$dest_val",
-      //   "args"     => self::array_copy($args),
-      //   "modifications" => self::array_copy($this->modifications[$var_sku])
-      // ));
       $dest_val = $value;
       $value    = '';
       return true;
     }
     // value not empty, check for swap, if dest_val valid for this column, swap and return true
     if(!($invalid_next = $this->checkValueInvalid($column,$dest_val))) {
-      // $this->setState("value_non_empty_check_swap","Non-Empty Destination, Check for Swap",array(
-      //   "column" => intval($column),
-      //   "value"  => "$value",
-      //   "dest_col" => intval($dest_col),
-      //   "dest_key" => "$dest_key",
-      //   "dest_val" => "$dest_val",
-      //   "invalid"  => $invalid_next,
-      //   "args"     => self::array_copy($args),
-      //   "modifications" => self::array_copy($this->modifications[$var_sku])
-      // ));
       $tmp      = $value;
       $value    = $dest_val;
       $dest_val = $tmp;
       return true;
     }
     // check if needs modded to be be valid value for current column
-    // set state to check shit out... probably remove soon
+    // set states to check shit out... probably remove soon
     $tmp_mod_opts = self::array_copy($mod_opts);
     $tmp_mod_opts[$column][$cur_key] = $dest_val;
     $tmp_mod_opts[$dest_col][$dest_key] = $value;
-    // $this->setState("preprocess_option_with_next_column_value","Trying Re-Processing with Next Column's Value",array(
-    //   "column" => intval($column),
-    //   "value"  => "$value",
-    //   "dest_col" => intval($dest_col),
-    //   "dest_key" => "$dest_key",
-    //   "dest_val" => "$dest_val",
-    //   "invalid"  => $invalid_next,
-    //   "tmp_mod_opts" => self::array_copy($tmp_mod_opts),
-    //   "args"     => self::array_copy($args),
-    //   "modifications" => self::array_copy($this->modifications[$var_sku])
-    // ));
     if($this->processOption($column,$org_opts,$tmp_mod_opts,$args)) {
-      // $this->setState("process_option_with_next_column_value_before","Tried Re-Processing with Next Column's Value Before",array(
-      //   "column" => intval($column),
-      //   "value"  => "$value",
-      //   "dest_col" => intval($dest_col),
-      //   "dest_key" => "$dest_key",
-      //   "dest_val" => "$dest_val",
-      //   "invalid"  => $invalid_next,
-      //   "tmp_mod_opts" => self::array_copy($tmp_mod_opts),
-      //   "args"     => self::array_copy($args),
-      //   "modifications" => self::array_copy($this->modifications[$var_sku])
-      // ));
-      $value    = $tmp_mod_opts[$column][$cur_key];
+      $tmp_key  = array_key_exists($cur_key,$tmp_mod_opts[$column]) ? $cur_key : $this->VK($column);
+      $value    = $tmp_mod_opts[$column][$tmp_key];
       $dest_val = $tmp_mod_opts[$dest_col][$dest_key];
-      // $this->setState("process_option_with_next_column_value_after","Tried Re-Processing with Next Column's Value After",array(
-      //   "column" => intval($column),
-      //   "value"  => "$value",
-      //   "dest_col" => intval($dest_col),
-      //   "dest_key" => "$dest_key",
-      //   "dest_val" => "$dest_val",
-      //   "invalid"  => $invalid_next,
-      //   "tmp_mod_opts" => self::array_copy($tmp_mod_opts),
-      //   "args"     => self::array_copy($args),
-      //   "modifications" => self::array_copy($this->modifications[$var_sku])
-      // ));
       return true;
     }
-    // set state to check shit out... probably remove soon
-    ;
-    // still data, try to preserve and write data to next column
-    // $this->setState("preserve_next_column","Trying Recursive Preservation",array(
-    //   "column" => intval($column),
-    //   "value"  => "$value",
-    //   "dest_col" => intval($dest_col),
-    //   "dest_key" => "$dest_key",
-    //   "dest_val" => "$dest_val",
-    //   "invalid"  => $invalid_next,
-    //   "tmp_mod_opts" => self::array_copy($tmp_mod_opts),
-    //   "args"     => self::array_copy($args),
-    //   "modifications" => self::array_copy($this->modifications[$var_sku])
-    // ));
     return $this->preserveColumnValue($dest_col,$dest_val,$args, ($dest_col+1));
   }
 
@@ -1018,11 +964,7 @@ class ShopifyStandard {
    */
   private function autocorrectColumnValue($column, &$value, &$args = array()) {
     $org_val = $value;
-    // autocorrect for capitalization... should do in future, making checks strict, for now, they're loose anyways
-    // $cap_val = ucwords($value);
-    // if($this->checkValueInvalid($column, $cap_val, $args)==0) {
-    //  return !!($value = $cap_val);
-    // }
+    // autocorrect for capitalization... @prune(9);
     
     // look for comma, and lack of space, if has comma, and matches this regex, needs space after comma
     if(strpos($value, ',')!==false) { // if comma and didn't pass before, must need space
@@ -1175,9 +1117,7 @@ class ShopifyStandard {
    */
 
   private function mutateColumnValue($column, &$value, &$args = array()) {
-    // here the value is not a valid size, check if derivable size (like group+size, by regex), 
-    // or if is a color(run next column val check on current val), 
-    // or needs to be moved elsewhere, preserve and write from size argument
+    // @prune(10);
 
     // if last column -- which, for now, should not need mutated
     if($this->isLastColumn($column)) return false;
@@ -1185,30 +1125,15 @@ class ShopifyStandard {
     $org_val = $value;
     // if empty determine from sku / image
     if(empty($value)) return $this->determineColumnValue($column, $value, $args);
-    // extract args:
-      // "var_sku"  => $var_sku,
-      // "pro_sku"  => $pro_sku,
-      // "group"    => $group,
-      // "size"     => $size,
-      // "special"  => $special,
-      // "opt_key"  => $opt_key,
-      // "org_opts" => $options,
-      // "mod_opts" => &$mod_opts
+    // extract args: @prune(11);
     if(!empty($args)) extract($args, EXTR_SKIP|EXTR_REFS);
 
     // check if can be auto-corrected (simple for now, to be extended)
     if($this->autocorrectColumnValue($column,$value,$args)) return true;
-      // update: just return true, error in autocorrectColumnValue if need
-      // add state for this, may not even bother with this tho -- 
-      //$this->setState("autocorrect_option_value","Value Auto Corrected from '".$org_val."' to '".$value."'", func_get_args());
-      // re-process the option with the auto-corrected value.
-      // returns a numerical error code, true or false on manipulation, we need to return true (due to the auto correct) unless error code
-      /** this might not be true (above), no need to reprocess, just return true, with updated values (already updated due to reference) */
-      // return is_bool($this->processOption($column, $org_opts, $mod_opts, $args));
-
+    // @prune(12);
     // check if value is valid for next column
     if(!$this->isLastColumn($column) && !($next_val_invalid = $this->checkValueInvalid(($next_column = ($column+1)), $value))) {
-      // should not return false; error state
+      // should not return false; error states
       if($next_val_invalid===false) {
         return $this->setState("next_val_invalid_index_error", "Invalid Column '$next_column' When Checking Next Column",array_merge(array(
           "next_val_invalid" => $next_val_invalid,
@@ -1216,61 +1141,14 @@ class ShopifyStandard {
         ), $args)) && false;
       }
       // valid next column value
-      //if($next_val_invalid === 0) { // has to be to get here
-      //
-      // should be if preserve (and modify) return true, otherwise return false, and set error state in preserve function
-      // another function will need to call the preserve function, because here we need to see if the data can be written to the next column
-      //   should probably check for the inverse if there is data in the next column, (like, meaning they are swaped)
-      //   if there is data in the next column, and it's not swapped (some fun recurssion on that test tho), try to preserve that data, error on fail
-      //     which is in effect preserving this column data to a destination column, which should default to 3rd (2), but will be whatever 'next_column' is
-      //    
-      //    so in the preserveColumnValue...
-      //    
-      //    trying to write to next column (this time),
-      //    check for data in that column. if there's not, go ahead and write it there, (and clear current field)
-      //    if there is data there, check if it is a valid value for the current column (like swapped).
-      //      if so, write current column value to next column, and let it swap them. (ie. change the current value to that next column's value)
-      
-      // the preserveColumnValue function should return true if current value altered (like everything else),
-      // if the data was preserved, clear the column, cause it was preserved, and needs to be determined (which if empty, will happen on recursion)
-      // if the data was set, (as in borrowed from the next column), data changed, so probably check for valid value again
-      // ShopifyStandard::diedump($column,$value,$next_column,$args,($this->preserveColumnValue($column,$value,$args,$next_column)) ? (
-      //   $this->processOption($column,$org_opts,$mod_opts,$args)
-      // ) : $this->getLastState());
-      // $this->setState("call_preserve_data","Call for Preservation of Data",array(
-      //   "column" => intval($column),
-      //   "value"  => "$value",
-      //   "args"     => self::array_copy($args),
-      //   "next_val_invalid" => $next_val_invalid,
-      //   "modifications" => self::array_copy($this->modifications[$var_sku])
-      // ), null, "preserveColumnValue");
+      // @prune(13);
       return ($this->preserveColumnValue($column,$value,$args,$next_column)) ? (
         $this->processOption($column,$org_opts,$mod_opts,$args)
       ) : false;
     }
 
-    // i'm starting to no be overly sure you should check the previous column... above should have swaped if necessary... hmmm.
-      // if(($column > 0) && !($prev_val_invalid = $this->checkValueInvalid(($prev_column = ($column-1)), $value))) {
-      //   // should not return false; error state
-      //   if($prev_val_invalid===false) {
-      //     return $this->setState("prev_val_invalid_index_error", "Invalid Column '$prev_column' When Checking Previous Column",array_merge(array(
-      //       "prev_val_invalid" => $prev_val_invalid,
-      //       "prev_column"      => $prev_column
-      //     ), $args));
-      //   }
-      //   // valid value of previous column
-      //   // check if already modified (at this point), and see if extra data available, preserve or dismiss
-      //   // if($prev_val_invalid === 0) { // has to be, the only way to get here
-        
-      //   return ShopifyStandard::diedump(array_merge(array(
-      //     "prev_val_invalid" => $prev_val_invalid,
-      //     "prev_column"      => $prev_column
-      //   ), $args));
-
-      //   return false;// for now, to debug
-
-      // }
-
+    // @prune(14);
+    
     // try to determine if valid value can be parsed from value (stash rest... or, if not, try stashing all
     // try parsing original value for typical parts for preservation
     if($parsed = $this->parseColumnValue($column, $value, $args)) {
@@ -1285,17 +1163,7 @@ class ShopifyStandard {
 
       // return whether actually modified (although it should be)
       return (strcasecmp($value,$org_val)==0); 
-    } else { // single word, invalid, and not next column... preserve and set?
-      // unable to parse anything, or, test for single word -- either way, attempt preserve and set
-        // $this->setState("single_word_preserve_error","No Spaces, need Mutation, Preserve and Set?", array(
-        //   "where"   =>"single_word_preserve_error",
-        //   "column"  => $column,
-        //   "org_val" => $org_val,
-        //   "value"   => $value,
-        //   "parsed"  => $parsed,
-        //   "args"    => $args
-        // ));
-      // should return true on modification, check to preserve and set. false if no mod possible, probably error state (should not be like above)
+    } else { // @prune(15)
       return ($this->preserveColumnValue($column,$value,$args)) ? (
         $this->processOption($column,$org_opts,$mod_opts,$args)
       ) : false;
@@ -1314,7 +1182,7 @@ class ShopifyStandard {
           "1"       => "======================= args ==========================",
           "args"    => $args,
           "2"       => "======================= errors ==========================",
-          "errors"  => $this->state
+          "errors"  => $this->states
         ));
       } else {
         $this->skip_some = isset($this->skip_some) ? ++$this->skip_some : 1;
@@ -1353,15 +1221,7 @@ class ShopifyStandard {
         $results[$word_pos] = $matches;
       }
     }
-    if(!empty($results)) {
-      // self::diedump(array(
-      //  'where'=>__FUNCTION__."::".__LINE__,
-      //  '$value'=>$value,
-      //  '$results'=>$results,
-      //  '$test_params'=>$test_params,
-      //  '$this->state'=>$this->state
-      // ));
-    }
+    // @prune(17)
     return !empty($results) ? $results : false;
   }
 
@@ -1455,9 +1315,7 @@ class ShopifyStandard {
 
   private function getProductTypes() {
     if(empty($this->product_types)) {
-      // This query gets a count of sku_types:
-      // $query = "SELECT DISTINCT SUBSTRING(variant_sku,4,2) as type_code, COUNT(variant_sku) as type_count, " .
-      //      "(SELECT description FROM sku_standard WHERE sku_standard.sku_code = type_code) as type_desc FROM org_export GROUP BY type_code";
+      // @prune(17);
       $query = "SELECT sku_code as type_code, google_shopping_google_product_category as type_desc FROM sku_standard";
       $types = array();
       if($results = $this->query($query)) {
@@ -1497,7 +1355,7 @@ class ShopifyStandard {
         $this->setState("query_fail","MySQLi Error: ".$this->db->error, array("query"=>$query));
       }
     }
-    return (count($this->state)==0);
+    return (count($this->states)==0);
   }
 
   private function getOptionKeyValueByColumn($column = 1) {
@@ -1535,15 +1393,15 @@ class ShopifyStandard {
     $group = is_null($group)? debug_backtrace()[1]['function'] : $group;
     $data   = is_null($data)  ? debug_backtrace() : self::array_copy($data);
     $count  = is_null($count) ? (
-      (isset($this->state[$group])) ? (
-        (isset($this->state[$group][$code])) ? (
-          count($this->state[$group][$code]) ) : ( 0 ) ) : ( 0 ) ) : ( $count );
+      (isset($this->states[$group])) ? (
+        (isset($this->states[$group][$code])) ? (
+          count($this->states[$group][$code]) ) : ( 0 ) ) : ( 0 ) ) : ( $count );
     try {
-      $this->state[$group][$code][$count] = array(
+      $this->states[$group][$code][$count] = array(
         "message" => $message,
         "data"    => $data
       );
-      $this->state_data[] = array(
+      $this->states_data[] = array(
         "code"   => $code,
         "index"  => $count,
         "group" => $group
@@ -1556,27 +1414,27 @@ class ShopifyStandard {
 
   protected function getState($code = "shopify_standard_error", $index = null, $group = null, $just_data = true) {
     $group = is_null($group) ? debug_backtrace()[1]['function'] : $group;
-    if(is_null($this->state[$group][$code])) return array("getError_error"=>array(
+    if(is_null($this->states[$group][$code])) return array("getError_error"=>array(
       "group" => $group,
       "code"   => $code,
       "index"  => $index,
-      "errors" => $this->state
+      "errors" => $this->states
     ));
 
     return is_null($index) ? (
       !!$just_data ? (
         array_map(function($arr) {
           return $arr['data'];
-        }, $this->state[$group][$code])
+        }, $this->states[$group][$code])
       ) : (
-        $this->state[$group][$code]
+        $this->states[$group][$code]
       )
     ) : ( 
-      array_key_exists($index,$this->state[$group][$code]) ? (
+      array_key_exists($index,$this->states[$group][$code]) ? (
         !!$just_data ? (
-          $this->state[$group][$code][$index]['data']
+          $this->states[$group][$code][$index]['data']
         ) : (
-          $this->state[$group][$code][$index]
+          $this->states[$group][$code][$index]
         )
       ) : (
         -1

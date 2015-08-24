@@ -1,5 +1,5 @@
 
-<?php extract($view_data);// Make $view_data keys available as variables in the layout/view
+<?php extract($state);// Make $state keys available as variables in the layout/view
 /*Avoid\n*/?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,7 +7,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 	<title><?php echo isset($html_title)&&!empty($html_title) ? $html_title : "Home Page"; ?></title>
-	<?php echo "<!-- vars: ".implode(", ", array_keys($view_data))." -->".PHP_EOL; ?>
+	<?php echo "<!-- vars: ".implode(", ", array_keys($state))." -->".PHP_EOL; ?>
 </head>
 <body>
 	<?php /*////////////////////////////////// Dump for Debugging ////////////////////////////////*/

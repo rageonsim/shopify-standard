@@ -74,6 +74,9 @@
 		$action     = strtolower(empty($action) ? "index" : $action);
 	}
 
+	// Set Initial State
+	$state = array();
+
 	/** Data Example (from routing):
 	 *
 	 * Request: http://shopifystandard.loc/controller/action/crap/can/go/here/?param1=1&param2=2
@@ -111,17 +114,17 @@
 
 	// Include the controller
 	if(!function_exists("loadController")) {
-		function loadController($contact = "index/index", $__data = null, $rewrite = 0) {
-			global $controller, $action;
-			$view_data = is_array($__data) ? $__data : array($__data);
+		function loadController($contact = "index/index", $_state = null, $rewrite = 0) {
+			global $controller, $action, $req_etc, $params, $state;
+			$state = is_array($_state) ? $_state : array($_state);
 			if(strpos($contact, "/")!==false) {
 				if(is_numeric($rewrite) && $rewrite===1) {
-					$view_data['set_url'] = "/$contact/";
+					$state['set_url'] = "/$contact/";
 					REFERER(($controller!=='index'?"$controller/":'').$action);
 				}
 				list($controller, $action, $extra) = array_pad(explode("/", $contact, 3),3,null);
 				if(!is_null($extra)) {
-					$view_data['extra'] = $extra;
+					$state['extra'] = $extra;
 				}
 			} else {
 				$controller = "index";
