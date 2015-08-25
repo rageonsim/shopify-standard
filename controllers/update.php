@@ -20,8 +20,8 @@ if(!isset($db)) $db = ShopifyStandard::getInstance();
 if(!($db instanceof ShopifyStandard)) die(var_dump($db));
 
 // set the default value for $layout, which is 'default', and inherit or default state
-$layout     = !isset($layout)    || empty($layout)    ? 'default' : $layout;
-$state  = !isset($state) || empty($state) ?  array()  : $state;
+$layout = !isset($layout) || empty($layout) ? 'default' : $layout;
+$state  = !isset($state)  || empty($state)  ?  array()  : $state;
 
 $html_title = 'Update';
 
@@ -53,7 +53,6 @@ switch($action) {
 		// $data = $state;
 		// $state = array();
 		// $state['dumpme'] = $data;
-		if(!isset($state)) $state = array();
 		if(!array_key_exists("color_needs_determination_error", $state)) {
 			return loadController("fix-options", $state, 1);
 		}

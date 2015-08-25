@@ -32,7 +32,9 @@ function App(_init_state) {
       }
     },
     _route = null,
-    _actions = {};
+    _actions = {},
+    _callbacks = {},
+    _sync_ajax = {};
 
   // Public Class Variables
   _this.initd = false;
@@ -43,6 +45,9 @@ function App(_init_state) {
   _this.setUrl = function(path,state) {
     window.history.pushState(state, path, path);
   }
+
+  // public access to private ajax method
+  _this.ajax = function(ajax_url, ajax_data, async, method) { return _this.ajax.apply(_this, Array.slice(arguments)); }
 
   // Private Methods
   
@@ -55,17 +60,84 @@ function App(_init_state) {
 
   function setRoute(route) { _route = route; }
 
-  function doAction(route) {
-    if(empty(_actions)) setActions();
-    return _actions[route.controller][route.action].apply(_this, [ _state ]);
+  function ajax(ajax_url, ajax_data, async, method) {
+    // use private class var to que deferred ajax calls (for async=false);
+    async  = typeof async  === 'undefined' ?  true  : async;
+    method = typeof method === "undefined" ? "POST" : method;
+    if(async) {
+      return doAjax(ajax_url, ajax_data, method);
+    } else {
+      if( empty(_sync_ajax) || (typeof _sync_ajax.state === 'undefined') || (_sync_ajax.state() === 'resolved') ) {
+        return (_sync_ajax = doAjax(ajax_url, ajax_data, method));
+      } else {
+        return _sync_ajax.then(doAjax(ajax_url, ajax_data, method));
+      }
+    }
   }
 
+  function doAjax(ajax_url, ajax_data, method) {
+    method = typeof method === "undefined" ? "POST" : method;
+    var callbacks = getCallbacks(ajax_url);
+    return jQuery.
+      ajax({
+        url: ajax_url,
+        type: method,
+        data_type: "json",
+        data: ajax_data
+      }).
+      success(callbacks.success).
+      error(callbacks.error).
+      complete(callbacks.complete);
+  }
+
+  function getCallbacks(path) {
+    if(empty(_callbacks)) setCallbacks();
+    var path_arr  = path.split("/").slice(1);
+    var callbacks = Object.create(_callbacks);
+    path_arr.forEach(function(prop, index, arr) {
+      callbacks   = callbacks[prop];
+    }, _this);
+    return callbacks;
+  }
+
+  // instead of going all out to make a Callbacks class
+  function setCallbacks(callbacks) {
+    console.info("setting callbacks");
+    callbacks = typeof callbacks !== "object" ? false : actions;
+    if(callbacks==false&&!empty(_callbacks)) return _callbacks;
+    _this.callbacks = callbacks==false||empty(callbacks) ? {
+      "ajax": {
+        "determine": {
+          "color": {
+            success: function(response, status_str, jqXHR_obj) {
+              var var_sku = response.request.params.var_sku,
+                  $input  = jQuery("#"+var_sku);
+              if($input.hasClass("unedited") && $input.hasClass("undetermined")) {
+                $input.val(response.suggestion).toggleClass("determined undetermined");
+              }
+              $input.data("ajax-determined",response.suggestion);
+            },
+            error: function(jqXHR_obj, status_str, error_str) {
+              console.log({"error": arguments});
+            },
+            complete: function(jqXHR_obj, status_str) {
+              //console.log({"complete": arguments});
+            }
+          }
+        }
+      }
+    } : callbacks;
+    _callbacks = _this.callbacks;
+  }
+
+  // to avoid setting up full Actions clsass
   function setActions(actions) {
+    console.log("setting actions");
     actions = typeof actions !== "object" ? false : actions;
     // check if already defined if not to be updated
     if(actions==false&&!empty(_actions)) return _actions;
     // define view actions, [controller][action](_state)
-    _this.actions = actions==false||empty(_actions) ? {
+    _this.actions = actions==false||empty(actions) ? {
       "index": {
         "fix-options": function(state) {
 
@@ -77,6 +149,20 @@ function App(_init_state) {
         },
         "colors": function(state) {
           console.info({"_actions:update:colors":state});
+          var $inputs = jQuery(".ajax-determine-color");
+          // track edits
+          $inputs.on("change", ".edited,.unedited", function(e) {
+            var $input = jQuery(e.target);
+            if($input.val().localeCompare($input.data('org-value'))==0) return !!$input.removeClass("edited").addClass("unedited");
+            return !!$input.toggleClass("edited unedited");
+          });
+          $inputs.filter(".undetermined").each(function(index, input) {
+            var $input    = jQuery(input),
+                ajax_data = $input.data('ajax-data'),
+                ajax_url  = $input.data('ajax-url');
+            ajax_data.cur_val = $input.val();
+            $input.data("ajax-deferred", ajax(ajax_url, ajax_data, false));
+          });
           
         }
       },
@@ -86,6 +172,11 @@ function App(_init_state) {
       }
     } : actions; // default to above, or set if passed
     _actions = _this.actions;
+  }
+
+  function doAction(route) {
+    if(empty(_actions)) setActions();
+    return _actions[route.controller][route.action].apply(_this, [ _state ]);
   }
 
   // App Constructor | Auto-Loading, keep at end

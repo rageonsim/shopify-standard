@@ -21,6 +21,7 @@ if(!($db instanceof ShopifyStandard)) die(var_dump($db));
 
 // set the default value for $layout, which is 'default'
 $layout = !isset($layout) || empty($layout) ? 'default' : $layout;
+$state  = !isset($state)  || empty($state)  ?  array()  : $state;
 
 $state  = array();
 $html_title = 'Save';

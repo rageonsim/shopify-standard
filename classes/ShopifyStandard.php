@@ -30,8 +30,8 @@ class ShopifyStandard {
    * Private Class Variables
    */
 
-  private $debug      = true; // should be a boolean representing whether to display certain debug info. false for production. (duh).
-  // private $debug_sku  = "last"; // "AOPTT1167"; // product sku without variant codes to dump after last variant, any string to dump after all variants
+  protected $debug      = true; // should be a boolean representing whether to display certain debug info. false for production. (duh).
+  // protected $debug_sku  = "last"; // "AOPTT1167"; // product sku without variant codes to dump after last variant, any string to dump after all variants
 
   private $user          = 'root';
   private $pass          = 'root';
@@ -46,6 +46,7 @@ class ShopifyStandard {
   private $states        = array();
   private $states_data    = array();
   private $colorx        = null;
+  private $color_cache   = null;
   private $product_types = array();
   /** product data in array with keys being the type_code */
   private $product_data  = array();
@@ -80,6 +81,8 @@ class ShopifyStandard {
   /**
    * Class Constant Variables
    */
+  
+  const COLOR_CACHE_COOKIE = "ShopifyStandard::color_cache";
 
   const COL_MAP = array(
     "handle"                                  => "Handle",
@@ -360,6 +363,10 @@ class ShopifyStandard {
     return $this->db->query($query);
   }
 
+  public function debug() {
+    return (isset($this->debug)&&boolval($this->debug));
+  }
+
   public function getLastState($how_many = 1, $filter_code = null, $filter_group = null) {
     if(empty($this->states_data)) return null;
     $filtered_states_data = $this->states_data;
@@ -565,6 +572,33 @@ class ShopifyStandard {
 
   public function getLastColumn() {
     return array_keys(self::VALID_KEYS)[(count(self::VALID_KEYS)-1)];
+  }
+
+  public function getColor($pro_args) {
+    $ret_val = $pro_args['cur_val'];
+    return array(
+      "suggestion" => (($det_res = $this->determineColor($ret_val, $pro_args))==true ? $ret_val : $det_res),
+      "cached"     => is_array($det_res)&&isset($det_res['cached'])&&(bool)($det_res['cached'])
+    );
+  }
+
+  public function colorCache() {
+    $cookie_data = isset($_COOKIE[self::COLOR_CACHE_COOKIE]) ? (array)unserialize($_COOKIE[self::COLOR_CACHE_COOKIE]) : array();
+    switch(func_num_args()) {
+      case 0:
+        return $cookie_data;
+      break;
+      case 1:
+        return isset($cookie_data[($arg=((string)func_get_arg(0)))]) ? $cookie_data[$arg] : false;
+      break;
+      case 2:
+        $cookie_data[(string)func_get_arg(0)] = ($color=(string)func_get_arg(1));
+        return (setcookie(self::COLOR_CACHE_COOKIE, serialize($cookie_data), time()+86400, '/', $_SERVER['HTTP_HOST'])) ? $color : false;
+      break;
+      default:
+        return false;
+      break;
+    }
   }
 
   public function getColorFromHex($hex) {
@@ -1004,10 +1038,10 @@ class ShopifyStandard {
     } // not passed in args, determine elsewehere -- look for determinite function
     elseif(method_exists($this, ($det_method = "determine".str_replace(" ","",ucwords($val_var))))) { 
       // ShopifyStandard::diedump($org_opts,$mod_opts);
-      return !!$this->setState($val_var."_needs_determination_error","The ".ucwords($val_var)." '$value' is Not Valid", @self::array_extend($args, array(
+      return !!$this->setState($val_var."_needs_determination_error","The ".ucwords($val_var)." '$value' is Not Valid", self::array_extend($args, array(
         "ajax_url" => "/ajax/determine/".$val_var,
         "cur_val"  => $value
-      )),null,"display_error");
+      )));
       // takes too long to do on one request. Throw to view, and ajax it
       // return $this->{$det_method}($value, $args);
     } else {
@@ -1020,6 +1054,22 @@ class ShopifyStandard {
     }
   }
 
+  public function getImageFromSku($var_sku) {
+    $_tbl    = $prefix.$suffix.$mod_suffix;
+    $select  = "SELECT IF(variant_image='',(SELECT DISTINCT image_src FROM $_tbl WHERE variant_sku LIKE '$pro_sku%' AND image_src != '' LIMIT 1), variant_image) as variant_image FROM $_tbl WHERE variant_sku = '$var_sku' LIMIT 1";
+    if(!($_tbl_res = $this->query($select)) || $_tbl_res->num_rows!=1) {
+      return ($this->setState("query_fail_error","MySQLi Error: ".$this->db->error, array("query"=>$select))&&false);
+    }
+    $$_tbl      = $_tbl_res->fetch_array();
+    $image_src  = array_pop($$_tbl);
+    $image_src  = strpos($image_src, '?') !== false ? stristr($image_src, '?', true) : $image_src;
+  }
+
+  /**
+   * determineColor
+   * 
+   * @return bool true on modify, false otherwise
+   **/
   private function determineColor(&$value, $pro_args, $suffix = 'tt', $prefix = "products_", $mod_suffix = "_edited") {
     $start_runtime = self::runtime();
     $org_val = $value;
@@ -1028,32 +1078,36 @@ class ShopifyStandard {
     $_tbl    = $prefix.$suffix.$mod_suffix;
     $select  = "SELECT IF(variant_image='',(SELECT DISTINCT image_src FROM $_tbl WHERE variant_sku LIKE '$pro_sku%' AND image_src != '' LIMIT 1), variant_image) as variant_image FROM $_tbl WHERE variant_sku = '$var_sku' LIMIT 1";
     if(!isset($this->colorx)) $this->colorx = new ColorExtractor;
-    if(!isset($this->color_cache)) $this->color_cache = array();
-    if(!($$_tbl = $this->query($select)) || $$_tbl->num_rows!=1) {
+    if(!($_tbl_res = $this->query($select)) || $_tbl_res->num_rows!=1) {
       return ($this->setState("query_fail_error","MySQLi Error: ".$this->db->error, array("query"=>$select))&&false);
     }
-    $image_src  = @array_pop($$_tbl->fetch_array());
+    $$_tbl      = $_tbl_res->fetch_array();
+    $image_src  = array_pop($$_tbl);
     $image_src  = strpos($image_src, '?') !== false ? stristr($image_src, '?', true) : $image_src;
     // getting the remote images proves too long, use local cache (from other project, an API would be cool, but I'll find the image this way for now)
     $glob_path  = APP_ROOT."/assets/images/*/".basename($image_src);
-    $local_img  = @array_pop(self::findFile($glob_path));
+    $local_imgs = self::findFile($glob_path);
+    $local_img  = array_pop($local_imgs);
     $image_path = !is_null($local_img) ? $local_img : $image_src;
     $image_ext  = substr($image_path, strrpos($image_path, '.'));
     $image_obj  = null;
-    // Cache color for image to reduce processing and unexpected variations on variants
-    $this->color_cache = isset($this->color_cache) ? $this->color_cache : array();
     $err_data = array(
       'select'     => $select,
       'var_sku'    => $var_sku,
       'image_src'  => $image_src,
+      'local_imgs' => $local_imgs,
       'local_img'  => $local_img,
       'image_path' => $image_path,
       'image_ext'  => $image_ext,
       '_tbl'       => $_tbl,
       "$_tbl"      => $$_tbl,
-      'cache'      => $this->color_cache
+      'cache'      => $this->colorCache()
     );
-    if(!array_key_exists($image_src, $this->color_cache)) {
+    if($image_path===$image_src) 
+      die(var_export(($err_data),true))&&exit(1);
+    // Cache color for image to reduce processing and unexpected variations on variants
+    $color_cache = "";
+    if(!($color_cache = $this->colorCache($image_path))) {
       switch($image_ext) {
         case ".png":
           $image = $this->colorx->loadPng($image_path);
@@ -1071,9 +1125,7 @@ class ShopifyStandard {
       }
       // Check for null image
       if(is_null($image)) {
-        return !$this->setState("image_read_error","Unable to Read Image: ".basename($image_src), self::array_extend($err_data, array(
-          'cache'     => $this->color_cache
-        )), null, "display_error");
+        return !$this->setState("image_read_error","Unable to Read Image: ".basename($image_src), $err_data, null, "display_error");
       }
 
       // Extract most common hex color from image
@@ -1090,7 +1142,7 @@ class ShopifyStandard {
           'hex'   => $hex
         )));
       }
-      // Get Human Friendly Color Name from HEX
+      // Get Human Friendly Color Name from HEX and check validity
       $color   = $this->getColorFromHex($hex);
       if(($invalid = $this->checkValueInvalid(array_search("Color", self::VALID_KEYS), $color)))  {
         return !$this->setState("invalid_color_error","Invalid Color Value: $color", slef::array_extend($err_data, array(
@@ -1099,12 +1151,12 @@ class ShopifyStandard {
         )));
       }
       // cache color
-      $this->color_cache[$image_src] = $color;
+      $value = $this->colorCache($image_path, $color);
+      // self::diedump($start_runtime, self::runtime(), debug_backtrace());
+      // update value with color from cache, and compare to original value to return boolean mutation value
     }
-    self::diedump($start_runtime, self::runtime(), debug_backtrace());
-    // update value with color from cache, and compare to original value to return boolean mutation value
-    $value = $this->color_cache[$image_src];
-    return ($value!==$org_val);
+    $value = $color_cache;
+    return (($value!==$org_val) ? array("cached"=>!!$color_cache) : false);
   }
 
   private function determineKind(&$value, $var_sku, $suffix = 'tt', $prefix = 'products_', $mod_suffix = "_edited") {
@@ -1251,7 +1303,7 @@ class ShopifyStandard {
   }
 
   /**
-  ///////////////////////////// End Mutotr Functions /////////////////////////////
+   * ///////////////////////////// End Mutotr Functions /////////////////////////////
    */
 
   private function getCSVHandle($filepath = null, $mode = "r") {

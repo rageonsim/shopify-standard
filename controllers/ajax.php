@@ -21,6 +21,7 @@ if(!($db instanceof ShopifyStandard)) die(var_dump($db));
 
 // set the default value for $layout, which is 'default'
 $layout = !isset($layout) || empty($layout) ? 'default' : $layout;
+$state  = !isset($state)  || empty($state)  ?  array()  : $state;
 
 // set layout to ajax specifically
 $layout = 'ajax';
@@ -28,8 +29,23 @@ $layout = 'ajax';
 //Switch through possible Actions
 switch($action) {
 	// Example 'add' action
-	case 'add':
-
+	case 'determine':
+		switch($req_etc) {
+			case "color":
+				/** params_keys: var_sku, pro_sku, group, size, special, column, cur_key, org_opts, mod_opts, ajax_url, cur_val */
+				extract($params,EXTR_SKIP);
+				$state['request'] = array(
+					"controller" => $controller,
+					"action"     => $action,
+					"req_etc"    => $req_etc,
+					"params"	 => $params
+				);
+				$suggestion = $db->getColor($params);
+				$state['suggestion'] = $suggestion['suggestion'];
+				$state['from_cache'] = $suggestion['cached'];
+				$state['color_cache'] = $db->colorCache();
+			break;
+		}
 	break;
 	// Index Action
 	case 'index':

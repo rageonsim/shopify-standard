@@ -11,6 +11,8 @@
 	 *
 	 **/
 
+	require_once("../classes/ShopifyStandard.php");
+
 	// Set Debug Mode
 	define("DEBUG", true); // ideally set from config file, change to false before production
 
@@ -38,7 +40,7 @@
 			$_REFERER  = array_shift($func_args);
 		} else {
 			REFERER((isset($_SERVER['HTTP_REFERER'])) ? (
-				(strpos($tmp = trim(substr($_SERVER['HTTP_REFERER'],strlen($_SERVER["HTTP_ORIGIN"])),'/'),'/')!==false) ? (
+				(strpos($tmp = trim(substr($_SERVER['PHP_SELF'],strlen(basename(__FILE__))+1),'/'),'/')!==false) ? (
 					$tmp
 				) : (
 					"index/$tmp"
@@ -61,6 +63,7 @@
 		$req_etc .= $param . $sep;
 	}
 	parse_str(trim($req_etc,'=&'),$req_etc);
+	if(count($req_etc)===1&&strcasecmp(reset($req_etc), "")===0) $req_etc = array_keys($req_etc)[0];
 
 	// Get any Request Params
 	$params  = $_REQUEST;
@@ -116,7 +119,7 @@
 	if(!function_exists("loadController")) {
 		function loadController($contact = "index/index", $_state = null, $rewrite = 0) {
 			global $controller, $action, $req_etc, $params, $state;
-			$state = is_array($_state) ? $_state : array($_state);
+			$state = is_array($_state) ? $_state : (is_null($_state) ? array() : array($_state));
 			if(strpos($contact, "/")!==false) {
 				if(is_numeric($rewrite) && $rewrite===1) {
 					$state['set_url'] = "/$contact/";
