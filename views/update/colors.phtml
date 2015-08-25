@@ -30,8 +30,8 @@
 				$title      = empty($pro_data['title']) ? ucwords(str_replace("-"," ",$handle)) : $pro_data['title'];
 				$oddeven    = ($err_count%2==0) ? "odd" : "even";
 				$options    = $db->arrayToListString($error['mod_opts']);
-				$image_src  = $pro_data['variant_image'] or $pro_data['image_src'];
-				$val_colors = "((?:".implode("|",array_keys($db->VV(array_search("Color", $db->VK())))).")(?:,\s)?)+";
+				$image_src  = $db->getImageSrcFromSku($var_sku) ?: $db->getImageSrcFromSku($errors_to_edit[$err_count-1]['var_sku']);
+				$val_colors = $db->getValueValidRegex(array_search("Color", $db->VK()));
 				// Shopifystandard::diedump(array(
 				// 	'$var_sku'  => $var_sku,
 				// 	'$pro_sku'  => $pro_sku,
@@ -47,7 +47,7 @@
 				<td style="vertical-align: middle; text-align: center;">
 					<a href="<?php echo $products_url.$handle; ?>" target="_default" tabindex="-1"
 					   title="<?php echo "Current Options: $options"; ?>"><?php
-					   if(!empty($image_path)): 
+					   if(!empty($image_src)): 
 					   	?><img src="<?php echo $image_src; ?>" alt="<?php echo $title; ?>" style="max-width: 200px;margin: 0 auto;display: block;" /><?php
 					   endif; ?>
 					   <span><?php echo $title; ?></span>

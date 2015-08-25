@@ -33,7 +33,7 @@
 			include (!$view_path||$_use_view=="404" ? realpath(__DIR__."/../errors/404.phtml") : $view_path);
 		/******* End inclusion of view *********************************************************** */ ?>
 	</div><?php /** Include Javascripts and Instatiate Below ***********************************/ ?>
-    <script type="text/javascript" src="/assets/javascripts/jquery-2.1.4<?php echo $db->debug()?'.min.js':'.js'; ?>"></script>
+    <script type="text/javascript" src="/assets/javascripts/jquery-2.1.4<?php echo $db->debug()?'.js':'.min.js'; ?>"></script>
     <script type="text/javascript" src="/assets/bootstrap/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="/assets/javascripts/lib.js"></script>
 	<script type="text/javascript" src="/assets/javascripts/app.js"></script>
@@ -51,6 +51,9 @@
 			"set_url": "<?php echo $set_url; ?>"<?php
 			endif; ?>
 		});
+		window.redoAction = function() {
+			App.doAction(App.state.route);
+		};
 	})(window,document,App);
 	</script>
 </body>

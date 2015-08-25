@@ -41,8 +41,12 @@ switch($action) {
 					"params"	 => $params
 				);
 				$suggestion = $db->getColor($params);
-				$state['suggestion'] = $suggestion['suggestion'];
-				$state['from_cache'] = $suggestion['cached'];
+				// $state['suggestion'] = $suggestion['suggestion'];
+				// $state['from_cache'] = $suggestion['cached'];
+				if(!$suggestion['suggestion']) {
+					$state['erros'] = $db->getLastState(10, null, null) ?: error_get_last();
+				}
+				ShopifyStandard::array_extend($state, $suggestion);
 				$state['color_cache'] = $db->colorCache();
 			break;
 		}

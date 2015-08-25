@@ -47,7 +47,8 @@ function App(_init_state) {
   }
 
   // public access to private ajax method
-  _this.ajax = function(ajax_url, ajax_data, async, method) { return _this.ajax.apply(_this, Array.slice(arguments)); }
+  _this.ajax = function(ajax_url, ajax_data, async, method) { return ajax.apply(_this, Array.slice(arguments)); }
+  _this.doAction = function(route) { return doAction.apply(_this, [ route ] ); }
 
   // Private Methods
   

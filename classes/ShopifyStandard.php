@@ -552,7 +552,8 @@ class ShopifyStandard {
 
   public function getValueValidRegex($column, $strict = false) {
     $test_valid = ($strict) ? $this->getValueValidTrue($column) : array_keys($this->VV($column));
-    return "/^((".implode("|",$test_valid).")(,\s)?)+$/";
+    //return "/^((".implode("|",$test_valid).")(,\s)?)+$/"; // allow comma-separated list for columns greater than 0
+    return '/^(?:(?:'.implode("|", $test_valid).')'.(boolval($column)?'(?:,\s)?)+':')').'$/';
   }
 
   public function getSkuValid($sku) {
@@ -575,10 +576,10 @@ class ShopifyStandard {
   }
 
   public function getColor($pro_args) {
-    $ret_val = $pro_args['cur_val'];
+    $det_res = $this->determineColor($pro_args['cur_val'], $pro_args);
     return array(
-      "suggestion" => (($det_res = $this->determineColor($ret_val, $pro_args))==true ? $ret_val : $det_res),
-      "cached"     => is_array($det_res)&&isset($det_res['cached'])&&(bool)($det_res['cached'])
+      "suggestion" => $det_res['suggestion'],
+      "cached"     => (is_array($det_res)&&isset($det_res['cached'])&&(bool)($det_res['cached']))
     );
   }
 
@@ -1054,15 +1055,17 @@ class ShopifyStandard {
     }
   }
 
-  public function getImageFromSku($var_sku) {
-    $_tbl    = $prefix.$suffix.$mod_suffix;
+  public function getImageSrcFromSku($var_sku, $prefix = 'products_', $mod_suffix = '_edited') {
+    list(/* $var_sku */, $vendor, $type, $id, $group, $size, $special) = $this->getSkuValid($var_sku);
+    $pro_sku = $vendor.$type.$id;
+    $_tbl    = $prefix.strtolower($type).$mod_suffix;
     $select  = "SELECT IF(variant_image='',(SELECT DISTINCT image_src FROM $_tbl WHERE variant_sku LIKE '$pro_sku%' AND image_src != '' LIMIT 1), variant_image) as variant_image FROM $_tbl WHERE variant_sku = '$var_sku' LIMIT 1";
     if(!($_tbl_res = $this->query($select)) || $_tbl_res->num_rows!=1) {
       return ($this->setState("query_fail_error","MySQLi Error: ".$this->db->error, array("query"=>$select))&&false);
     }
     $$_tbl      = $_tbl_res->fetch_array();
     $image_src  = array_pop($$_tbl);
-    $image_src  = strpos($image_src, '?') !== false ? stristr($image_src, '?', true) : $image_src;
+    return (!empty($image_src = (strpos($image_src, '?') !== false ? stristr($image_src, '?', true) : $image_src)) ? $image_src : null);
   }
 
   /**
@@ -1075,36 +1078,24 @@ class ShopifyStandard {
     $org_val = $value;
     // extract pro_args into scope
     extract($pro_args,EXTR_SKIP|EXTR_REFS);
-    $_tbl    = $prefix.$suffix.$mod_suffix;
-    $select  = "SELECT IF(variant_image='',(SELECT DISTINCT image_src FROM $_tbl WHERE variant_sku LIKE '$pro_sku%' AND image_src != '' LIMIT 1), variant_image) as variant_image FROM $_tbl WHERE variant_sku = '$var_sku' LIMIT 1";
     if(!isset($this->colorx)) $this->colorx = new ColorExtractor;
-    if(!($_tbl_res = $this->query($select)) || $_tbl_res->num_rows!=1) {
-      return ($this->setState("query_fail_error","MySQLi Error: ".$this->db->error, array("query"=>$select))&&false);
-    }
-    $$_tbl      = $_tbl_res->fetch_array();
-    $image_src  = array_pop($$_tbl);
-    $image_src  = strpos($image_src, '?') !== false ? stristr($image_src, '?', true) : $image_src;
+    $image_src  = $this->getImageSrcFromSku($var_sku);
     // getting the remote images proves too long, use local cache (from other project, an API would be cool, but I'll find the image this way for now)
     $glob_path  = APP_ROOT."/assets/images/*/".basename($image_src);
     $local_imgs = self::findFile($glob_path);
-    $local_img  = array_pop($local_imgs);
+    $local_img  = reset($local_imgs);
     $image_path = !is_null($local_img) ? $local_img : $image_src;
     $image_ext  = substr($image_path, strrpos($image_path, '.'));
     $image_obj  = null;
     $err_data = array(
-      'select'     => $select,
       'var_sku'    => $var_sku,
       'image_src'  => $image_src,
       'local_imgs' => $local_imgs,
       'local_img'  => $local_img,
       'image_path' => $image_path,
       'image_ext'  => $image_ext,
-      '_tbl'       => $_tbl,
-      "$_tbl"      => $$_tbl,
       'cache'      => $this->colorCache()
     );
-    if($image_path===$image_src) 
-      die(var_export(($err_data),true))&&exit(1);
     // Cache color for image to reduce processing and unexpected variations on variants
     $color_cache = "";
     if(!($color_cache = $this->colorCache($image_path))) {
@@ -1129,34 +1120,40 @@ class ShopifyStandard {
       }
 
       // Extract most common hex color from image
-      $palette = $image->extract();
-      if(!(is_array($palette) && (count($palette)>0)))  {
+      $palette = $image->extract(3);
+      if(!(is_array($palette) && (count($palette)==3)))  {
         return !$this->setState("image_color_extract_error","Unable to Color from Image: ".basename($image_src), self::array_extend($err_data, array(
           'palette' => $palette
         )));
       }
       // pull most prominent (or only at this time) HEX color value off palette
-      $hex     = strtoupper(array_shift($palette));
-      if(!($tmp = preg_match("/^#[A-Z0-9]+$/", $hex))) {
-        return !$this->setState("invalid_hex_error","Invalid Hex Color Code: $hex", self::array_extend($err_data, array(
-          'hex'   => $hex
-        )));
+      $hex      = array_map("strtoupper", $palette);
+      $filtered = array_filter($hex, function($code) { return preg_match("/^#[A-Z0-9]+$/", $code); });
+      if(count($filtered)!==count($hex)) {
+        self::array_extend($err_data, array(
+          'hex'      => $hex,
+          'filtered' => $filtered,
+          'regex'    => $this->getValueValidRegex(1, true)
+        ));
+        return !$this->setState("invalid_hex_error","Invalid Hex Color Code: $hex", $err_data);
       }
-      // Get Human Friendly Color Name from HEX and check validity
-      $color   = $this->getColorFromHex($hex);
-      if(($invalid = $this->checkValueInvalid(array_search("Color", self::VALID_KEYS), $color)))  {
-        return !$this->setState("invalid_color_error","Invalid Color Value: $color", slef::array_extend($err_data, array(
+      // Get Human Friendly Color Name from HEX
+      $color   = implode(", ", array_map(array(ShopifyStandard::getInstance(), 'getColorFromHex'), $hex));
+      // Validate Colors
+      if(!($valid = $this->getValueValid(array_search("Color", self::VALID_KEYS), $color)))  {
+        return !$this->setState("invalid_color_error","Invalid Color Value: $color", self::array_extend($err_data, array(
           'color'   => $color,
-          'invalid' => $invalid
+          'valid'   => $valid
         )));
       }
       // cache color
       $value = $this->colorCache($image_path, $color);
       // self::diedump($start_runtime, self::runtime(), debug_backtrace());
       // update value with color from cache, and compare to original value to return boolean mutation value
+    } else {
+      $value = $color_cache;
     }
-    $value = $color_cache;
-    return (($value!==$org_val) ? array("cached"=>!!$color_cache) : false);
+    return (($value!==$org_val) ? array("cached"=>!!$color_cache,"suggestion"=>"$value") : false);
   }
 
   private function determineKind(&$value, $var_sku, $suffix = 'tt', $prefix = 'products_', $mod_suffix = "_edited") {
