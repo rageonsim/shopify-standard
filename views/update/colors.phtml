@@ -31,7 +31,7 @@
 				$oddeven    = ($err_count%2==0) ? "odd" : "even";
 				$options    = $db->arrayToListString($error['mod_opts']);
 				$image_src  = $db->getImageSrcFromSku($var_sku) ?: $db->getImageSrcFromSku($errors_to_edit[$err_count-1]['var_sku']);
-				$val_colors = $db->getValueValidRegex(array_search("Color", $db->VK()));
+				$val_colors = trim($db->getValueValidRegex(array_search("Color", $db->VK())),'/');
 				// Shopifystandard::diedump(array(
 				// 	'$var_sku'  => $var_sku,
 				// 	'$pro_sku'  => $pro_sku,

@@ -32,21 +32,20 @@ switch($action) {
 	case 'skus':
 		$sku_data  = $_POST['skus'];
 		$return_to = isset($_POST['return_to']) ? trim($_POST['return_to'],'/') : REFERER();
-		if(!$sku_data) return loadController($return_to, array("error"=>$db->setState("null_sku_data_error","No SKU Data Received by the Server",$_POST,"loadOptions")));		
+		if(!$sku_data) return loadController($return_to, array("error"=>$db->setState("null_sku_data_error","No SKU Data Received by the Server",$_POST,null,"loadOptions")));
 		$fix_skus = $db->doUpdateSkus($sku_data);
-		// if(array_key_exists("error", $fix_skus)) {
-		// 	return loadController("save/error", $fix_skus);
-		// } else
-		// if(array_key_exists("success", $fix_skus)) {
-
-		// return to previous page, with object containing keys for 'display_error' or 'display_success'
-		// does not need any other data based back, errors will be recalculated, just display for user support.
 		return loadController($return_to, $fix_skus, 1);
-		
-		// }
 	break;
+	case 'colors':
+		$color_data = $_POST['colors'];
+		$return_to  = isset($_POST['return_to']) ? trim($_POST['return_to'], '/') : REFERER();
+		$auto_adv   = isset($_POST['auto_advance']) || (!!(isset($_COOKIE['ShopifyStandard::auto_advance:color'])&&(intval($_COOKIE['ShopifyStandard::auto_advance:color'])==1)));
+		if($auto_adv) setcookie("ShopifyStandard::auto_advance:color",1,"/",time()+86400);
+		if(!$color_data) return loadController($return_to, array("error"=>setState("null_color_data_error","No Color Data Recieved by the Server",$_POST,null,"loadOptions")));
+		$fix_colors = $db->doUpdateColors($color_data);
+		return loadController($return_to, $fix_colors, 1);
 	default:
-		// probably want to error here
+		// probably want to set error properties here, shows 404.
 }
 
 // Include the appropriate layout view

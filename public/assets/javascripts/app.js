@@ -103,7 +103,7 @@ function App(_init_state) {
 
   // instead of going all out to make a Callbacks class
   function setCallbacks(callbacks) {
-    console.info("setting callbacks");
+    // console.info("setting callbacks");
     callbacks = typeof callbacks !== "object" ? false : actions;
     if(callbacks==false&&!empty(_callbacks)) return _callbacks;
     _this.callbacks = callbacks==false||empty(callbacks) ? {
@@ -149,21 +149,32 @@ function App(_init_state) {
 
         },
         "colors": function(state) {
-          console.info({"_actions:update:colors":state});
+          // console.info({"_actions:update:colors":state});
           var $inputs = jQuery(".ajax-determine-color");
           // track edits
-          $inputs.on("change", ".edited,.unedited", function(e) {
-            var $input = jQuery(e.target);
-            if($input.val().localeCompare($input.data('org-value'))==0) return !!$input.removeClass("edited").addClass("unedited");
-            return !!$input.toggleClass("edited unedited");
-          });
-          $inputs.filter(".undetermined").each(function(index, input) {
-            var $input    = jQuery(input),
-                ajax_data = $input.data('ajax-data'),
-                ajax_url  = $input.data('ajax-url');
-            ajax_data.cur_val = $input.val();
-            $input.data("ajax-deferred", ajax(ajax_url, ajax_data, false));
-          });
+          $inputs.
+            on("change", ".edited,.unedited", function(e) {
+              var $input = jQuery(e.target);
+              if($input.val().localeCompare($input.data('org-value'))==0) return !!$input.removeClass("edited").addClass("unedited");
+              return !!$input.toggleClass("edited unedited");
+            }).
+            each(function(index, input) {
+              var $input = jQuery(input),
+                  $label = $input.siblings("label").first();
+              $label.on("click", function(e) {
+                $input.val($input.data('org-value'));
+              });
+
+            }).
+            filter(".undetermined").each(function(index, input) {
+              var $input    = jQuery(input),
+                  ajax_data = $input.data('ajax-data'),
+                  ajax_url  = $input.data('ajax-url');
+              ajax_data.cur_val = $input.val();
+              $input.data("ajax-deferred", ajax(ajax_url, ajax_data, false));
+            });
+
+
           
         }
       },

@@ -3,7 +3,7 @@
 RewriteEngine on
 
 # Route Other Requests to Index for Views
-RewriteCond %{THE_REQUEST} ^[A-Z]{3,9}\ /.*index\.php
+RewriteCond %{REQUEST_URI} ^[A-Z]{3,9}\ /.*index\.php
 RewriteRule ^index.php/?(.*)$ $1 [L]
 
 # Run everything else but real files through index.php

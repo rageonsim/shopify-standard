@@ -60,7 +60,7 @@ switch($action) {
 			'products_url'    => "https://www.rageon.com/products/",
 			'errors_per_page' => 20,
 			'save_action'     => "save/colors",
-			'auto_advance'    => !!(isset($_COOKIE['ShopifyStandard::auto_advance:color'])&&(intval($_COOKIE['ShopifyStandard::auto_advance:color'])===1))
+			'auto_advance'    => !!(isset($_COOKIE['ShopifyStandard::auto_advance:color'])&&(intval($_COOKIE['ShopifyStandard::auto_advance:color'])==1))
 		));
 	break;
 	default:

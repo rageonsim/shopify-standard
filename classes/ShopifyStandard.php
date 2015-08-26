@@ -510,6 +510,10 @@ class ShopifyStandard {
     return $this->updateSkus($sku_data);
   }
 
+  public function doUpdateColors($color_data) {
+    return $this->updateColors($color_data);
+  }
+
   public function testSkuAvailable($new_sku, $old_sku, $prefix = 'products_') {
     $sku = $new_sku;
     $tablesq= "SHOW TABLES LIKE '$prefix%'";
@@ -649,7 +653,7 @@ class ShopifyStandard {
         continue;
       }
       /**
-       * @todo: figure out setting the prefix/mod_suffix in constructor later
+       * @todo: figure out setting the prefix/mod_suffix in constructor, later
        */
       $prefix = "products_"; $mod_suffix = "_edited";
       $table  = $prefix.substr($old_sku,3,2).$mod_suffix;
@@ -669,6 +673,38 @@ class ShopifyStandard {
       "display_success" => $this->getState("sku_save_success", null, "display_success", false)
     );
 
+  }
+
+  private function updateColors($color_data) {
+    if(!is_array($color_data)) {
+      $this->setState($code="null_color_data_error","No Color Data Received by the Server", array("color_data"=>$color_data),null,"display_error");
+      return array("display_error" => $this->getLastState(1,"null_color_data_error","display_error"));
+    }
+    $skus = array_keys($color_data);
+    foreach($color_data as $sku => $color_pieces) {
+      $index = array_search($sku, $skus);
+      $color = implode(", ",$color_peices); // if using multiple inputs, one input should be validated with comma-space separation of valid values already, so no affect
+      //tests before writing
+      if(!($tmp = $this->getValueValid($color))) {
+        $this->setState("color_update_error", "Invaid Color: '$color'", array("Sku"=>$sku,"Color"=>$color,"Details"=>(!$tmp?($tmp===false?"System Error":"Invalid Color"):$tmp)),$index,"display_error");
+      }
+      $prefix = "products_"; $mod_suffix = "_edited";
+      $table  = $prefix.substr($sku,3,2).$suffix;
+      $update = "UPDATE $table SET option_1_value = '$color' WHERE variant_sku = '$sku'";
+      $result - $this->query($update);
+      if($result !== false && $this->db->affected_rows===1) {
+        $this->setState("color_save_success", "$sku Color Updated to '$color' Successfully", array(), $index, "display_success");
+      } else {
+        $this->setState("color_save_error", "Error Setting $sku Color to '$color'", array(
+          "Cause" => $this->db->error
+        ), $index, "display_error");
+      }
+    }
+    return array(
+      "display_error"   => $this->getLastState(-1, "color_save_error", "display_error"),
+      "display_warning" => $this->getLastState(-1, "color_save_warning", "display_warning"),
+      "display_success" => $this->getLastState(-1, "color_save_success", "display_success")
+    );
   }
 
   private function loadOptions($suffix = "tt", $prefix = "products_", $mod_suffix = "_edited") {
@@ -1127,8 +1163,8 @@ class ShopifyStandard {
         )));
       }
       // pull most prominent (or only at this time) HEX color value off palette
-      $hex      = array_map("strtoupper", $palette);
-      $filtered = array_filter($hex, function($code) { return preg_match("/^#[A-Z0-9]+$/", $code); });
+      $hex      = array_map('strtoupper', $palette);
+      $filtered = preg_grep('/^#[A-Z0-9]+$/', $hex);
       if(count($filtered)!==count($hex)) {
         self::array_extend($err_data, array(
           'hex'      => $hex,

@@ -23,8 +23,11 @@ if(!($db instanceof ShopifyStandard)) die(var_dump($db));
 $layout = !isset($layout) || empty($layout) ? 'default' : $layout;
 $state  = !isset($state)  || empty($state)  ?  array()  : $state;
 
-// set layout to ajax specifically
+// set layout to ajax specifically, to json encode response
 $layout = 'ajax';
+
+// increase script timeout for ajax scripts
+set_time_limit(60);
 
 //Switch through possible Actions
 switch($action) {

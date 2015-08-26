@@ -1,7 +1,7 @@
 
 <?php extract($state);// Make $state keys available as variables in the layout/view
 /*Avoid\n*/?><!DOCTYPE html>
-<html lang="en">
+<html lang="en" manifest="/<?php echo (!!ShopifYStandard::getInstance()->debug()?'debug':'production').'.php.appcache'; ?>">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -49,6 +49,9 @@
 			"referer": <?php echo '"'.REFERER().'"';
 			if(isset($set_url)): ?>,
 			"set_url": "<?php echo $set_url; ?>"<?php
+			endif;
+			if(isset($auto_advance)): ?>,
+			"auto_advance": <?php echo boolval($auto_advance) ? "true" : "false"; ?><?php
 			endif; ?>
 		});
 		window.redoAction = function() {

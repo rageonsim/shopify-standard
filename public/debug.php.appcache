@@ -1,0 +1,10 @@
+<?php header("Content-Type: text/cache-manifest"); ?>
+CACHE MANIFEST
+# Development Version
+# 2015-08-25 v0.0.1
+
+NETWORK:
+*
+
+FALLBACK:
+/ /errors/connection
