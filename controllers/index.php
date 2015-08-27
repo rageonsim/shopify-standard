@@ -53,10 +53,11 @@ switch($action) {
       switch($error_code) {
         case "sku_parse_error":
           // sku parse error
-          return loadController("update/skus", array_merge($state, $fix), 1);
+          return loadController("update/skus", $fix, 1);
         break;
         case "color_needs_determination_error":
-          return loadController("update/colors", array_merge($state, $fix), 1);
+          // ajax determination form required
+          return loadController("update/colors", $fix, 1);
         break;
         default:
           // dump unknown errors
@@ -109,6 +110,8 @@ switch($action) {
   break;
   // Index Action
   case 'index':
+    // mask call to fix-options action
+    return loadController("fix-options",$state);
     // $state['csv_data'] = 
     //$db->getCSVData();
     //$state['queries'] = $db->writeCSVData();

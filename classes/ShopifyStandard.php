@@ -681,30 +681,38 @@ class ShopifyStandard {
       return array("display_error" => $this->getLastState(1,"null_color_data_error","display_error"));
     }
     $skus = array_keys($color_data);
+    // should be class vars...
+    $prefix = "products_"; $mod_suffix = "_edited";
+    $column = array_search('Color', $this->VK());
+    if($column===false) {
+      $this->setState("indeterminate_column_error", "Unable to find a valid 'Color' column.",array("color_data"=>$color_data),null,"display_error");
+      return $this->getLastState(-1,"indeterminate_column_error");
+    }
     foreach($color_data as $sku => $color_pieces) {
       $index = array_search($sku, $skus);
-      $color = implode(", ",$color_peices); // if using multiple inputs, one input should be validated with comma-space separation of valid values already, so no affect
+      $color = implode(", ",$color_pieces); // if using multiple inputs, one input should be validated with comma-space separation of valid values already, so no affect
       //tests before writing
-      if(!($tmp = $this->getValueValid($color))) {
-        $this->setState("color_update_error", "Invaid Color: '$color'", array("Sku"=>$sku,"Color"=>$color,"Details"=>(!$tmp?($tmp===false?"System Error":"Invalid Color"):$tmp)),$index,"display_error");
+      if(!($tmp = $this->getValueValid($column,$color))) {
+        $this->setState("color_update_error", "Invaid Color: '$color'", array("Sku"=>$sku,"Color"=>$color,"Details"=>($tmp===false?"System Error":"Invalid Color")),$index,"display_error");
       }
-      $prefix = "products_"; $mod_suffix = "_edited";
-      $table  = $prefix.substr($sku,3,2).$suffix;
-      $update = "UPDATE $table SET option_1_value = '$color' WHERE variant_sku = '$sku'";
-      $result - $this->query($update);
+      $table  = $prefix.substr($sku,3,2).$mod_suffix;
+      $update = "UPDATE $table SET option_".($column+1)."_value = '$color' WHERE variant_sku = '$sku'";
+      $result = $this->db->query($update);
       if($result !== false && $this->db->affected_rows===1) {
-        $this->setState("color_save_success", "$sku Color Updated to '$color' Successfully", array(), $index, "display_success");
+        $this->setState("color_save_success", "Successfully Updated $sku Color to '$color'", array(), $index, "display_success");
       } else {
-        $this->setState("color_save_error", "Error Setting $sku Color to '$color'", array(
-          "Cause" => $this->db->error
+        $this->setState("color_save_error", "Error Updating $sku Color to '$color'", array(
+          "Cause"   => $this->db->error,
+          "Rows"    => $this->db->affected_rows,
+          "Details" => var_export($result,true)
         ), $index, "display_error");
       }
     }
-    return array(
-      "display_error"   => $this->getLastState(-1, "color_save_error", "display_error"),
-      "display_warning" => $this->getLastState(-1, "color_save_warning", "display_warning"),
-      "display_success" => $this->getLastState(-1, "color_save_success", "display_success")
-    );
+    return array_filter(array(
+      "display_error"   => $this->getState("color_save_error",   null, "display_error",   false),
+      "display_warning" => $this->getState("color_save_warning", null, "display_warning", false),
+      "display_success" => $this->getState("color_save_success", null, "display_success", false)
+    ));
   }
 
   private function loadOptions($suffix = "tt", $prefix = "products_", $mod_suffix = "_edited") {
@@ -714,7 +722,7 @@ class ShopifyStandard {
     $error_type = array(
       "database_select_error",
       "sku_parse_error",
-      "create_mod_table"
+      "create_mod_table_error"
     );
     $error_count = array_fill_keys($error_type, 0);
 
@@ -722,7 +730,7 @@ class ShopifyStandard {
     $_org = $prefix.$suffix;
     $_tbl = $prefix.$suffix.$mod_suffix;
     // for now, ignore wholesale products, those will be handled differently, but we do not want to mess them up right now.
-    if(!$this->query("CREATE TABLE IF NOT EXISTS $_tbl SELECT * FROM $_org WHERE handle NOT LIKE '%-wholesale'")) {
+    if(!$this->query("CREATE TABLE IF NOT EXISTS $_tbl (PRIMARY KEY(variant_sku)) SELECT * FROM $_org WHERE handle NOT LIKE '%-wholesale'")) {
       return !($this->setState($error_type[2],"Failed Creating Mod Tables",array("table"=>$_tbl,"mod"=>$_mod)));
     }
 
@@ -895,21 +903,31 @@ class ShopifyStandard {
       } // end of per variant loop (group key with size arr)
     } //end of per product loop
 
+    // if($_SERVER['REQUEST_METHOD'] === 'POST') {
+      //   self::diedump(array(
+      //     "where"     => "fixOptions after loop",
+      //     "Error Total:"      =>  array_sum($error_counts=array_combine(array_keys($this->states), array_map("count", array_values($this->states)))),
+      //     "Error Groups:"     =>  $error_counts,
+      //     "Error Codes:"      =>  array_diff(self::array_keys_multi($this->states, 2),array_keys($error_counts)),
+      //     "Error Data: "    => $this->states,
+      //     "tableData"   => $$_tbl
+      //   ));
+      // }
+    
+    /** Need array of processable errors, which should return that state. if no defined ones are there, then push others (probably to be added, or ignored, we'll see) */
+
+    $processable_errors = array(
+      "color_needs_determination_error",
+      "indeterminate_value_error"
+    );
+
     if(count($this->states)>0) {
-      foreach($this->states as $type=>$data) {
+      foreach($this->states as $group=>$data) {
         foreach($data as $code => $error) {
-          if(count($error) > 0) return array($code => $this->getState($code, null, $type));
+          if(in_array($code, $processable_errors)) return array($code => $this->getState($code, null, $group, true));
         }
       }
     }
-
-    self::diedump(array(
-      "where"     => "fixOptions after loop",
-      "Error Total: "   => array_sum($error_counts=array_combine(array_keys($this->states), array_map("count", array_values($this->states)))),
-      "Error Types: "   => $error_counts,
-      "Error Data: "    => $this->states,
-      "tableData"   => $$_tbl
-    ));
 
   }
 
@@ -954,7 +972,7 @@ class ShopifyStandard {
       // apply modification or mutation
       $mod_method = $mod_type."ColumnValue";
       // for future determination of what was altered
-      $modification = &$this->modifications[$var_sku][$column][$mod_type];
+      $modification =& $this->modifications[$var_sku][$column][$mod_type];
       // should return true if altered, false otherwise
       $modification = $this->{$mod_method}($column, $cur_val, $proc_data);
       //if($org_opts!==$mod_opts) ShopifyStandard::diedump($org_opts,$mod_opts);
@@ -1039,9 +1057,9 @@ class ShopifyStandard {
     
     // look for comma, and lack of space, if has comma, and matches this regex, needs space after comma
     if(strpos($value, ',')!==false) { // if comma and didn't pass before, must need space
-      $tmp_val = preg_replace("/,([^\s])",", $1",$value);
+      $tmp_val = preg_replace("/,([^\s])/",", $1",$value);
       if(!is_null($tmp_val)) {
-        if(strcomp($value,$tmp_val)!==0) {
+        if(strcmp($value,$tmp_val)!==0) {
           return !!($value = $tmp_val);
         }
       }
@@ -1499,12 +1517,18 @@ class ShopifyStandard {
 
   protected function getState($code = "shopify_standard_error", $index = null, $group = null, $just_data = true) {
     $group = is_null($group) ? debug_backtrace()[1]['function'] : $group;
-    if(is_null($this->states[$group][$code])) return array("getError_error"=>array(
-      "group" => $group,
-      "code"   => $code,
-      "index"  => $index,
-      "errors" => $this->states
-    ));
+    if(!isset($this->states[$group])) {
+      $this->setState("get_null_group_error", "Error group '$group' not defined",func_get_args());
+      return false;
+    }
+    if(!isset($this->states[$group][$code]) || is_null($this->states[$group][$code])) {
+      $this->setState("get_null_code_error", "Error code '$code' in '$group' not defined", array("getError_error"=>array(
+        "group" => $group,
+        "code"   => $code,
+        "index"  => $index
+      )));
+      return false;
+    }
 
     return is_null($index) ? (
       !!$just_data ? (

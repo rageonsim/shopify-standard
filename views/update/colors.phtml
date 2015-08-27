@@ -30,7 +30,7 @@
 				$title      = empty($pro_data['title']) ? ucwords(str_replace("-"," ",$handle)) : $pro_data['title'];
 				$oddeven    = ($err_count%2==0) ? "odd" : "even";
 				$options    = $db->arrayToListString($error['mod_opts']);
-				$image_src  = $db->getImageSrcFromSku($var_sku) ?: $db->getImageSrcFromSku($errors_to_edit[$err_count-1]['var_sku']);
+				$image_src  = $db->getImageSrcFromSku($var_sku) ?: ($err_count>0?$db->getImageSrcFromSku($errors_to_edit[$err_count-1]['var_sku']):null);
 				$val_colors = trim($db->getValueValidRegex(array_search("Color", $db->VK())),'/');
 				// Shopifystandard::diedump(array(
 				// 	'$var_sku'  => $var_sku,

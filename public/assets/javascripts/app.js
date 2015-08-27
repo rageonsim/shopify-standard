@@ -68,10 +68,10 @@ function App(_init_state) {
     if(async) {
       return doAjax(ajax_url, ajax_data, method);
     } else {
-      if( empty(_sync_ajax) || (typeof _sync_ajax.state === 'undefined') || (_sync_ajax.state() === 'resolved') ) {
-        return (_sync_ajax = doAjax(ajax_url, ajax_data, method));
-      } else {
+      if(!!_sync_ajax&&!!_sync_ajax.then) {
         return _sync_ajax.then(doAjax(ajax_url, ajax_data, method));
+      } else {
+        return (_sync_ajax = doAjax(ajax_url, ajax_data, method));
       }
     }
   }

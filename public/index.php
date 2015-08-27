@@ -117,9 +117,15 @@
 
 	// Include the controller
 	if(!function_exists("loadController")) {
-		function loadController($contact = "index/index", $_state = null, $rewrite = 0) {
+		function loadController($contact = "index/index", $_state = null, $rewrite = 0, $clear = 0) {
 			global $controller, $action, $req_etc, $params, $state;
-			$state = is_array($_state) ? $_state : (is_null($_state) ? array() : array($_state));
+			$state  = is_null($state)  ? array() : (is_array($state)  ? $state  : array($state));
+			$_state = is_null($_state) ? array() : (is_array($_state) ? $_state : array($_state));
+			if($clear===1) {
+        $state = $_state;
+      } else {
+				ShopifYStandard::array_extend($state, $_state);
+      }
 			if(strpos($contact, "/")!==false) {
 				if(is_numeric($rewrite) && $rewrite===1) {
 					$state['set_url'] = "/$contact/";

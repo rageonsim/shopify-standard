@@ -37,13 +37,18 @@ switch($action) {
 		return loadController($return_to, $fix_skus, 1);
 	break;
 	case 'colors':
+		// clear state
+		$state      = array();
 		$color_data = $_POST['colors'];
 		$return_to  = isset($_POST['return_to']) ? trim($_POST['return_to'], '/') : REFERER();
 		$auto_adv   = isset($_POST['auto_advance']) || (!!(isset($_COOKIE['ShopifyStandard::auto_advance:color'])&&(intval($_COOKIE['ShopifyStandard::auto_advance:color'])==1)));
-		if($auto_adv) setcookie("ShopifyStandard::auto_advance:color",1,"/",time()+86400);
-		if(!$color_data) return loadController($return_to, array("error"=>setState("null_color_data_error","No Color Data Recieved by the Server",$_POST,null,"loadOptions")));
+		if(!$color_data) return loadController($return_to, array("error"=>$db->setState("null_color_data_error","No Color Data Recieved by the Server",$_POST,null,"loadOptions")));
+		if($auto_adv) setcookie("ShopifyStandard::auto_advance:color",
+			1, // set data to '1' in order to denote auto-advance is on. otherwise destroy the cookie, but not dealing with that now.
+		time()+86400,"/",$_SERVER['HTTP_HOST']);
 		$fix_colors = $db->doUpdateColors($color_data);
-		return loadController($return_to, $fix_colors, 1);
+		// ShopifyStandard::diedump($return_to, $fix_colors,$color_data)&&exit(1);
+		return loadController($return_to, $fix_colors, 1, 1);
 	default:
 		// probably want to set error properties here, shows 404.
 }
