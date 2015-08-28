@@ -4,11 +4,11 @@
  * Filepath: [Project]/views/index/index.phtml
  **/
 // Make $state keys available as variables in the view
-echo "<!-- vars: ".implode(", ", array_keys($state))." -->".PHP_EOL;
-extract($state);
-if(isset($dumpme)): ?>
-<!-- Dump Dumper Variable -->
-<div style="white-space: pre;"><?php echo var_export($dumpme, true); ?></div>
-<?php endif;
+// echo "<!-- vars: ".implode(", ", array_keys($state))." -->".PHP_EOL;
+// extract($state);
+// if(isset($dumpme)): ? >
+// <!-- Dump Dumper Variable -->
+// <div style="white-space: pre;"><?php echo var_export($dumpme, true); ? ></div>
+// <?php endif;
 /*/////////////////////////// Proceed with View Page: ////////////////////////*/
 ?>

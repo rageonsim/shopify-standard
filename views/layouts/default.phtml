@@ -1,7 +1,7 @@
 
 <?php extract($state);// Make $state keys available as variables in the layout/view
 /*Avoid\n*/?><!DOCTYPE html>
-<html lang="en" manifest="/<?php echo (!!ShopifYStandard::getInstance()->debug()?'debug':'production').'.php.appcache'; ?>">
+<html lang="en"<?php /*manifest="/<?php echo (!!ShopifYStandard::getInstance()->debug()?'debug':'production').'.php.appcache'; ?>" */ ?>>
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -16,10 +16,6 @@
 	<?php echo "<!-- vars: ".implode(", ", array_keys($state))." -->".PHP_EOL; ?>
 </head>
 <body>
-	<?php /*////////////////////////////////// Dump for Debugging ////////////////////////////////*/
-		if(isset($dumpme)): ?><!-- Dump Dumper Variable -->
-		<div style="white-space: pre;"><?php echo var_export($dumpme, true); ?></div>
-	<?php endif; /*/////////////////////////// Proceed with Layout Page: ////////////////////////*/ ?>
 	<div class="app container">
 		<header class="page-header row">
 			<h1 class="page-title"><?php echo isset($page_title) ? $page_title : $html_title; ?></h1>
@@ -27,11 +23,19 @@
 			<p class="lead"><?php echo $page_lead; ?></p>
 			<?php endif; ?>
 		</header>
+		<?php /*////////////////////////////////// Dump for Debugging ////////////////////////////////*/
+			if(isset($dumpme)): ?><!-- Dump Dumper Variable -->
+			<a href="#dumpme" data-toggle="collapse">Toggle DumpMe</a>
+			<pre id="dumpme" class="collapse in" style="white-space: pre;"><?php echo var_export($dumpme, true); ?></pre>
+		<?php endif; /*/////////////////////////// Proceed with Layout Page: ////////////////////////*/ 
+			if(isset($automation_details)): ?><!-- automation_details collapsables -->
+			<a href="#automation_details" data-toggle="collapse">Automation Details</a>
+			<pre id="automation_details" class="collapse" style="white-space: pre;"><?php echo var_export($automation_details,true); ?></pre>
+		<?php endif; ?>
 		<?php loadPartial('alerts/display-alerts', $state); ?>
 		<?php /** Include View in Layout (for specific contorller and action, make sure it exists) */
 		$view_path = realpath(__DIR__."/../".$controller."/".(isset($_use_view)?$_use_view:($_use_view=$action)).".phtml");
 			include (!$view_path||$_use_view==="404" ? realpath(__DIR__."/../errors/404.phtml") : $view_path);
-			if(!$view_path) echo "<pre>".var_export(array($controller,$action,$view_path,$_use_view,$req_etc,$params),true)."</pre>";
 		/******* End inclusion of view *********************************************************** */ ?>
 	</div><?php /** Include Javascripts and Instatiate Below ***********************************/ ?>
     <script type="text/javascript" src="/assets/javascripts/jquery-2.1.4<?php echo $db->debug()?'.js':'.min.js'; ?>"></script>

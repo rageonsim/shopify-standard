@@ -64,7 +64,10 @@ switch($action) {
 		));
 	break;
 	default:
-		//should probably error out here
+		$html_title = "404 Not Found";
+		$state['_use_view']  = "404";
+		$state['page_title'] = "404 Not Found";
+		$state['page_lead']  = "The Following Colors Must Be Determined:";
 }
 
 // Include the appropriate layout view

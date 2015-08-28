@@ -41,15 +41,15 @@ switch($action) {
     //$state['dumpme'] = $db->getOptionKeyValues();
 
     // gets current options for each product, and variant, with respect to the missing keys on variants
-    $state['dumpme'] = $db->standardizeOptions("tt");
+    $state['dumpme'] = $db->standardizeOptions();
   break;
   // Fix Options
   case 'fix-options':
     // but call our main function and just return the results
-    $fix = $db->doFixOptions();
+    $fix = $db->standardizeOptions();
     if($db->isError($fix)) {
       $error_codes = array_keys($fix);
-      $error_code  = array_pop($error_codes);
+      $error_code  = array_shift($error_codes);
       switch($error_code) {
         case "sku_parse_error":
           // sku parse error
@@ -70,7 +70,9 @@ switch($action) {
     }
   break;
   case 'test':
-    $state['dumpme'][] = array();
+    $state['html_title'] = "ShopifyStandard Test";
+    $state['page_title'] = "Test:";
+    //$state['dumpme'][] = array();
     /* Old Tests
       $state['dumpme'][] = $db->query("SELECT * FROM org_export WHERE body_html LIKE '%Make%everyone%' AND handle LIKE '3d%'")->fetch_object();
       $state['dumpme'][] = $db->getColorFromHex("#FECB89");
@@ -106,7 +108,24 @@ switch($action) {
             "Color"=> "Black"),array(
             ""=> ""))
       )); */
-    $state['dumpme'] = unserialize($_COOKIE[ShopifyStandard::COLOR_CACHE_COOKIE]);
+    //$state['dumpme'] = unserialize($_COOKIE[ShopifyStandard::COLOR_CACHE_COOKIE]);
+    
+    $arr = array(
+      "123" => array(
+        "update" => "sql",
+        "error"  => "errstr"
+      ),
+      "789" => "dome",
+      "456" => array(
+        "update" => "sql2",
+        "error"  => "erstr2"
+      )
+    );
+
+    $state['dumpme'] = array_filter($arr, "is_array");
+    // array_column($arr,"error","update");
+
+    
   break;
   // Index Action
   case 'index':

@@ -44,7 +44,16 @@ class ShopifyStandard {
   private $csv_data      = array();
   private $csv_handle    = null;
   private $states        = array();
-  private $states_data    = array();
+  private $states_data   = array();
+  private $max_errors    = 1000;
+  private $processable_states = array(
+    "database_select_error",
+    "sku_parse_error",
+    "create_mod_table_error",
+    "preservation_error",
+    "color_needs_determination_error",
+    "indeterminate_value_error"
+  );
   private $colorx        = null;
   private $color_cache   = null;
   private $product_types = array();
@@ -372,8 +381,18 @@ class ShopifyStandard {
     $filtered_states_data = $this->states_data;
     array_walk($filtered_states_data, function(&$states_data, $states_num, $filters) {
       extract($filters);
-      if(!is_null($filter_code)&&strcasecmp($states_data['code'],$filter_code)!==0) $states_data = null;
-      if(!is_null($filter_group)&&strcasecmp($states_data['group'],$filter_group)!==0) $states_data = null;
+      if(!is_null($filter_code)) {
+        $filter_code = is_array($filter_code) ? $filter_code : array($filter_code);
+        foreach($filter_code as $code) {
+          if(strcasecmp($states_data['code'],$code)!==0) $states_data = null;
+        }
+      }
+      if(!is_null($filter_group)) {
+        $filter_group = is_array($filter_group) ? $filter_group : array($filter_group);
+        foreach($filter_group as $group) {
+          if(strcasecmp($states_data['group'],$group)!==0) $states_data = null;
+        }
+      }
     }, array(
       "filter_code"   => $filter_code,
       "filter_group" => $filter_group
@@ -414,7 +433,23 @@ class ShopifyStandard {
 
   public function selectProductData($sku_code = null, $prefix = "products_") {
     if(is_null($sku_code)) return $this->getProductData($prefix);
-    return @$this->getProductData()[$sku_code];
+    $product_data = $this->getProductData();
+    return (isset($product_data[$sku_code]) ? $product_data[$sku_code] : false);
+  }
+
+  public function getProductDataBySkuFullSearch($sku) {
+    $tables = $this->getAllTables("products_", false, false);
+    $tablesArr = array_chunk($tables, 20);
+    $sku_data = array();
+    foreach($tablesArr as $tableset) {
+      $select  = "SELECT * FROM ".implode(",", $tableset)." WHERE variant_sku = '$sku' LIMIT 1";
+      $result = $this->query($select);
+      if(!$result) continue;
+      $row = $result->fetch_assoc();
+      $sku_data[] = $row;
+      $result->free_result();
+    }
+    return empty($sku_data) ? false : $sku_data;
   }
 
   public function getProductDataBySku($sku) {
@@ -430,8 +465,10 @@ class ShopifyStandard {
       return $this->setState("sku_parts_error", "The SKU '$sku' passed to getProductDataBySku has Invalid Parts", $err_data, null, "display_error") && false;
     }
     $tbl_data = $this->selectProductData($type);
-    $tbl_skus = array_column($tbl_data,null,"variant_sku");
-    if(!array_key_exists($sku, $tbl_skus)) {
+    if($tbl_data===false) return $this->getProductDataBySkuFullSearch($sku);
+    $tbl_skus = null;
+    if(is_array($tbl_data)) $tbl_skus = array_column($tbl_data,null,"variant_sku");
+    if(!is_array($tbl_skus)||!array_key_exists($sku, $tbl_skus)) {
       return $this->setState("sku_row_not_found_error", "Table Data Could Not Be Found for SKU '$sku'", self::array_extend($err_data, array(
         "vendor"=>isset($vendor)?$vendor:null,
         "type"=>isset($type)?$type:null,
@@ -453,8 +490,20 @@ class ShopifyStandard {
     );
   }
 
-  public function standardizeOptions($suffix = "tt", $prefix = "products_", $mod_suffix = '_edited') {
-    return $this->loadOptions($suffix, $prefix, $mod_suffix);
+  public function standardizeOptions($suffix = -1/*"tt"*/, $prefix = "products_", $mod_suffix = '_edited') {
+    if(!is_string($suffix)) { // all tables
+      $tables = $this->getAllTables($prefix, true, $mod_suffix, false);
+      $fix = false;
+      foreach($tables as $suffix) {
+        $fix = $this->fixTableOptions($suffix, $prefix, $mod_suffix);
+        if($fix===true) continue;
+        if($this->isError($fix)) return $fix;
+      }
+      return $ret_val;
+    } else {
+      return $this->fixTableOptions($suffix, $prefix, $mod_suffix);
+    }
+    
   }
 
   public function switchKey(&$arr, $oldkey, $newkey, $column = null) {
@@ -502,10 +551,6 @@ class ShopifyStandard {
     );
   }
 
-  public function doFixOptions() {
-    return $this->fixOptions();
-  }
-
   public function doUpdateSkus($sku_data) {
     return $this->updateSkus($sku_data);
   }
@@ -514,14 +559,26 @@ class ShopifyStandard {
     return $this->updateColors($color_data);
   }
 
-  public function testSkuAvailable($new_sku, $old_sku, $prefix = 'products_') {
-    $sku = $new_sku;
-    $tablesq= "SHOW TABLES LIKE '$prefix%'";
+  public function getAllTables($prefix = 'products_', $just_suffix = false, $exclude_suffix = '_edited', $require_not_exclude = false) {
+    $tablesq= "SHOW TABLES LIKE '$prefix%".(!!$require_not_exclude&&!empty($exclude_suffix)?"$exclude_suffix'":"'");
     $tbl_res= $this->query($tablesq);
     $tables = array();
     while($row = $tbl_res->fetch_assoc()) {
-      array_push($tables,array_pop($row));
+      $table = array_pop($row);
+      if(!$require_not_exclude&&!!$exclude_suffix&&!!preg_match("/$exclude_suffix\$/",$table)) continue;
+      array_push($tables,$table);
     }
+    if($just_suffix) {
+      array_walk($tables, function(&$table, $index, $prefix) {
+        $table = substr($table,strlen($prefix));
+      }, $prefix);
+    }
+    return $tables;
+  }
+// strip this part out to get all tables. run thru them in standardizeOptions function, and call each table for that, loop if no errors, error out after whatever...
+  public function testSkuAvailable($new_sku, $old_sku, $prefix = 'products_') {
+    $sku = $new_sku;
+    $tables    = $this->getAllTables($prefix, false, false);
     array_unshift($tables, 'org_export');
     $tablesArr = array_chunk($tables, 20);
     $available = array();
@@ -529,8 +586,8 @@ class ShopifyStandard {
       $count  = "SELECT COUNT(variant_sku) as count FROM ".implode(",", $tableset)." WHERE variant_sku LIKE '$sku'";
       $result = $this->query($count);
       if(!$result) continue; /** @todo: report this error */
-      $result = $result->fetch_assoc();
-      $available[] = intval($result['count']);
+      $row = $result->fetch_assoc();
+      $available[] = intval($row['count']);
       $result->free_result();
     }
     return (array_sum($available)==0);
@@ -695,7 +752,7 @@ class ShopifyStandard {
       if(!($tmp = $this->getValueValid($column,$color))) {
         $this->setState("color_update_error", "Invaid Color: '$color'", array("Sku"=>$sku,"Color"=>$color,"Details"=>($tmp===false?"System Error":"Invalid Color")),$index,"display_error");
       }
-      $table  = $prefix.substr($sku,3,2).$mod_suffix;
+      $table  = $this->getTableBySku($sku, $prefix.substr($sku,3,2).$mod_suffix, $prefix, $mod_suffix);
       $update = "UPDATE $table SET option_".($column+1)."_value = '$color' WHERE variant_sku = '$sku'";
       $result = $this->db->query($update);
       if($result !== false && $this->db->affected_rows===1) {
@@ -704,7 +761,8 @@ class ShopifyStandard {
         $this->setState("color_save_error", "Error Updating $sku Color to '$color'", array(
           "Cause"   => $this->db->error,
           "Rows"    => $this->db->affected_rows,
-          "Details" => var_export($result,true)
+          "Details" => var_export($result,true),
+          "Update"  => $update
         ), $index, "display_error");
       }
     }
@@ -719,11 +777,12 @@ class ShopifyStandard {
     /** Method Goal @prune(2); */
 
     // define local error types
-    $error_type = array(
-      "database_select_error",
-      "sku_parse_error",
-      "create_mod_table_error"
-    );
+    $error_type = $this->processable_states;
+    // array(
+    //   "database_select_error",
+    //   "sku_parse_error",
+    //   "create_mod_table_error"
+    // );
     $error_count = array_fill_keys($error_type, 0);
 
 
@@ -827,7 +886,7 @@ class ShopifyStandard {
 
   }
 
-  private function fixOptions($suffix = "tt", $prefix = "products_", $mod_suffix = '_edited') {
+  private function fixTableOptions($suffix = "tt", $prefix = "products_", $mod_suffix = '_edited') {
     /** @prune(4); */
 
     $_tbl = $prefix.$suffix;
@@ -895,12 +954,14 @@ class ShopifyStandard {
               if($pro_sku == $this->debug_sku) $this->hitit = true; // blow, if set but did not match, dump at end
               if(count($this->product_opts) - intval(array_search($pro_sku,array_keys($this->product_opts))) == 1) $this->hitit = true;
             }
-            // Set options to modified values // @prune(7);
-            // $options = $modifiedOptions;
-            
+            // @prune(7);
+            if(count($this->states_data)>=$this->max_errors) break;
           } // end of specials loop, special key with opts array
+          if(count($this->states_data)>=$this->max_errors) break;
         } // end of size loop, size key with specials arr)  
+        if(count($this->states_data)>=$this->max_errors) break;
       } // end of per variant loop (group key with size arr)
+      if(count($this->states_data)>=$this->max_errors) break;
     } //end of per product loop
 
     // if($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -913,22 +974,36 @@ class ShopifyStandard {
       //     "tableData"   => $$_tbl
       //   ));
       // }
-    
-    /** Need array of processable errors, which should return that state. if no defined ones are there, then push others (probably to be added, or ignored, we'll see) */
 
-    $processable_errors = array(
-      "color_needs_determination_error",
-      "indeterminate_value_error"
-    );
+    $updates = $this->updateManipulatedOptions($$_tbl, $suffix, $prefix, $mod_suffix);
+
+    /** Need array of processable errors, which should return that state. if no defined ones are there, then push others (probably to be added, or ignored, we'll see) */
 
     if(count($this->states)>0) {
       foreach($this->states as $group=>$data) {
         foreach($data as $code => $error) {
-          if(in_array($code, $processable_errors)) return array($code => $this->getState($code, null, $group, true));
+          if(in_array($code, $this->processable_states)) return array(
+            $code => $this->getState($code, null, $group, true),
+            "automation_details" => array(
+              "error"   => $this->getLastState(-1, "write_options_modifications_error"),
+              "success" => $this->getLastState(-1, "write_options_modifications_success")
+            )
+          );
+        }
+      }
+      foreach($this->states as $group=>$data) {
+        foreach($data as $code => $error) {
+          return array(
+            $code => $this->getState($code, null, $group, true),
+            "automation_details" => array(
+              "error"   => $this->getLastState(-1, "write_options_modifications_error"),
+              "success" => $this->getLastState(-1, "write_options_modifications_success")
+            )
+          );
         }
       }
     }
-
+    return true;
   }
 
   /**
@@ -1113,12 +1188,27 @@ class ShopifyStandard {
     list(/* $var_sku */, $vendor, $type, $id, $group, $size, $special) = $this->getSkuValid($var_sku);
     $pro_sku = $vendor.$type.$id;
     $_tbl    = $prefix.strtolower($type).$mod_suffix;
+    $_tbl    = "org_export";
     $select  = "SELECT IF(variant_image='',(SELECT DISTINCT image_src FROM $_tbl WHERE variant_sku LIKE '$pro_sku%' AND image_src != '' LIMIT 1), variant_image) as variant_image FROM $_tbl WHERE variant_sku = '$var_sku' LIMIT 1";
     if(!($_tbl_res = $this->query($select)) || $_tbl_res->num_rows!=1) {
-      return ($this->setState("query_fail_error","MySQLi Error: ".$this->db->error, array("query"=>$select))&&false);
+      $tables = $this->getAllTables("products_", false, false);
+      $img_data = "";
+      foreach($tables as $table) {
+        $select = "SELECT IF(variant_image='',(SELECT DISTINCT image_src FROM $table WHERE variant_sku LIKE '$pro_sku%' AND image_src != '' LIMIT 1), variant_image) as variant_image FROM $table WHERE variant_sku = '$var_sku' LIMIT 1";
+        $result = $this->query($select);
+        if(!$result) continue;
+        $row = $result->fetch_assoc();
+        if(!(!!$row&&is_array($row)&&count($row)==1)) continue;
+        $img_data = current($row);
+        $result->free_result();
+        break;
+      }
+      if(empty($img_data)) return ($this->setState("query_fail_error","MySQLi Error: ".$this->db->error, array("query"=>$select))&&false);
+      $image_src = $img_data;
+    } else {
+      $$_tbl      = $_tbl_res->fetch_array();
+      $image_src  = array_pop($$_tbl);
     }
-    $$_tbl      = $_tbl_res->fetch_array();
-    $image_src  = array_pop($$_tbl);
     return (!empty($image_src = (strpos($image_src, '?') !== false ? stristr($image_src, '?', true) : $image_src)) ? $image_src : null);
   }
 
@@ -1348,9 +1438,67 @@ class ShopifyStandard {
     return false;
   }
 
-  private function updateManipulatedData() {
+  private function getTableBySku($sku, $guess = null, $prefix = "products_", $mod_suffix = null) {
+    $table   = false;
+    $tables  = $this->getAllTables($prefix, false, is_null($mod_suffix)?false:$mod_suffix, !is_null($mod_suffix));
+    if(is_string($guess)) {
+      array_unshift($tables, $guess);
+    }
+    foreach($tables as $_table) {
+        $result = $this->query("SELECT * FROM $_table WHERE variant_sku = '$sku' LIMIT 1");
+      if(!!$result && isset($result->num_rows) && $result->num_rows>=0) {
+        $table = $_table;
+        break;
+      }
+    }
+    return $table;
+  }
+
+  private function updateManipulatedOptions($product_opts, $suffix = "tt", $prefix = "products_", $mod_suffix = "_edited") {
     // array_column for 'valid', and array diff the skus to get only non-valid options
     // update those.
+    $modifications = array_slice($this->modifications,1);
+    array_walk($modifications, function(&$opts_mod_arr, $sku) {
+      foreach($opts_mod_arr as $column => &$mods) {
+        $mods = !!array_search(true, $mods, true); // false or 0 unmodified;
+      }
+      if(count(array_filter($opts_mod_arr))==0) $opts_mod_arr = false;
+      return $opts_mod_arr;
+      
+    });
+    $to_update = array_filter($modifications);
+    $updates   = array();
+    $sku_valid = false;
+    foreach($to_update as $sku => $columns) {
+      $sku_valid = $this->getSkuValid($sku);
+      if(!$sku_valid) continue;
+      list($var_sku,$vendor,$type,$id,$group,$size,$special) = $sku_valid;
+      $pro_sku = $vendor.$type.$id;
+      if(!isset($product_opts[$pro_sku])) continue;
+      $options = $product_opts[$pro_sku][$group][$size][$special];
+      $table   = $this->getTableBySku($sku, $prefix.$type.$mod_suffix, $prefix, $mod_suffix);
+      // ShopifyStandard::diedump(compact("sku","var_sku","vendor","type","id","group","size","special","columns","options","table"));
+      $col_ups = array();
+      foreach($options as $column => $col_data) {
+        if(!$columns[$column]) continue;
+        $col_ups[] = "option_".($column+1)."_name  = '" . key($col_data) . "'";
+        $col_ups[] = "option_".($column+1)."_value = '" . current($col_data). "'";
+      }
+      $update = "UPDATE $table SET ". implode(', ', $col_ups) . " WHERE variant_sku = '$sku'";
+      $data   = false;
+      $result = $this->query($update);
+      if($result!==false) {
+        $code    = "write_options_modifications_success";
+        $message = "Successfully Saved Modification for '$sku': ".(count($col_ups)/2)." Columns Modified.";
+        $updates[$sku] = $data = $result;
+      } else {
+        $code    = "write_options_modifications_error";
+        $message = "Error writing modications for '$sku': ".(count($col_ups)/2)." Columns to Modify.";
+        $updates[$sku] = $data = array("error"=>$this->db->error,"result"=>$result);
+      }
+      $this->setState($code, $message, compact(explode("|","sku_valid|var_sku|pro_sku|options|table|col_ups|update|data")));
+    }
+    return $updates;
   }
 
   /**
@@ -1498,8 +1646,10 @@ class ShopifyStandard {
     $count  = is_null($count) ? (
       (isset($this->states[$group])) ? (
         (isset($this->states[$group][$code])) ? (
-          count($this->states[$group][$code]) ) : ( 0 ) ) : ( 0 ) ) : ( $count );
+          count($this->states[$group][$code]) ) : ( 0 ) ) : ( 0 ) ) : ( is_null($count) ? 0 : $count );
     try {
+      if(!isset($this->states[$group])) $this->states[$group] = array();
+      if(!isset($this->states[$group][$code])) $this->states[$group][$code] = array();
       $this->states[$group][$code][$count] = array(
         "message" => $message,
         "data"    => $data

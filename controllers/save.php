@@ -34,7 +34,8 @@ switch($action) {
 		$return_to = isset($_POST['return_to']) ? trim($_POST['return_to'],'/') : REFERER();
 		if(!$sku_data) return loadController($return_to, array("error"=>$db->setState("null_sku_data_error","No SKU Data Received by the Server",$_POST,null,"loadOptions")));
 		$fix_skus = $db->doUpdateSkus($sku_data);
-		return loadController($return_to, $fix_skus, 1);
+		ShopifyStandard::diedump(compact(explode('$','$sku_data$return_to$fix_skus')));
+		return loadController($return_to, $fix_skus, 1, 1);
 	break;
 	case 'colors':
 		// clear state
