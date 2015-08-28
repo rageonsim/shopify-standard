@@ -40,6 +40,9 @@ class ShopifyStandard {
   private $port          = 3306;
   private $db            = null;
   private $csv_path      = '../assets/products_export_08-04-2015.csv';
+  private $in_path       = '';
+  private $out_path      = '';
+  private $gen_csv       = true;
   private $csv_cols      = array();
   private $csv_data      = array();
   private $csv_handle    = null;
@@ -73,6 +76,7 @@ class ShopifyStandard {
   protected function __construct($in_path,$out_path,$gen_csv=true) {
     if($this->debug) error_log("////////////////////////////////// START RUN (".date("Y-m-d H:i:s").") ShopifyStandard CLASS //////////////////////////////");
     if($this->debug) register_shutdown_function("ShopifyStandard::diedump");
+    $this->csv_path = current(array_slice(glob(dirname($this->csv_path)."/*.csv"),-1));
     $this->in_path  = is_null($in_path) ? $this->csv_path : $in_path;
     $this->out_path = is_null($out_path)? $this->csv_path."_edited_".time().".csv" : $out_path;
     $this->gen_csv  = (bool)$gen_csv;
@@ -196,7 +200,8 @@ class ShopifyStandard {
           "4X"  => "XXXX-Large",
           "5XL" => "XXXXX-Large",
           "5X"  => "XXXXX-Large",
-          "OS"  => "One-Size"
+          "OS"  => "One-Size",
+          "OS"  => "One Size"
         );
       }
       
@@ -278,12 +283,12 @@ class ShopifyStandard {
   }
   
   public static function findFile($pattern, $flags = 0) {
-        $files = glob($pattern, $flags);
-        foreach (glob(dirname($pattern).'/*', GLOB_ONLYDIR|GLOB_NOSORT) as $dir) {
-            $files = array_merge($files, self::findFile($dir.'/'.basename($pattern), $flags));
-        }
-        return $files;
+    $files = glob($pattern, $flags);
+    foreach (glob(dirname($pattern).'/*', GLOB_ONLYDIR|GLOB_NOSORT) as $dir) {
+      $files = array_merge($files, self::findFile($dir.'/'.basename($pattern), $flags));
     }
+    return $files;
+  }
 
 
   public static function diedump() {
@@ -319,6 +324,26 @@ class ShopifyStandard {
   public static function array_extend(&$arr) {
     return ($arr = array_merge($arr, call_user_func_array("array_merge", array_slice(func_get_args(),1))));
   }
+
+  public static function array_diff_assoc_recursive($array1, $array2) { 
+    foreach($array1 as $key => $value) {
+      if(is_array($value)) {
+        if(!isset($array2[$key])) {
+          $difference[$key] = $value;
+        } elseif(!is_array($array2[$key])) {
+          $difference[$key] = $value;
+        } else {
+          $new_diff = self::array_diff_assoc_recursive($value, $array2[$key]);
+          if($new_diff != FALSE) {
+            $difference[$key] = $new_diff;
+          }
+        }
+      } elseif(!isset($array2[$key]) || $array2[$key] != $value) {
+        $difference[$key] = $value;
+      }
+    }
+    return !isset($difference) ? 0 : $difference;
+  } 
 
   public static function runtime($index = "stime") {
     $ru = getrusage();
@@ -504,6 +529,12 @@ class ShopifyStandard {
       return $this->fixTableOptions($suffix, $prefix, $mod_suffix);
     }
     
+  }
+
+  public function writeExportFile($filename = null, $prefix = "products_", $mod_suffix = "_edited") {
+    $rel_path = !is_string($filename) ? $this->out_path : $filename;
+    $this->writeDataToExport($rel_path, $prefix, $mod_suffix);
+    return $this->getLastState(1,"csv_generation_success") ?: $this->getLastState(-1, "csv_generation_error");
   }
 
   public function switchKey(&$arr, $oldkey, $newkey, $column = null) {
@@ -1419,7 +1450,7 @@ class ShopifyStandard {
   }
 
   public function getValueWords($value) {
-    return preg_split("/[\s,]+/", $value);
+    return preg_split("/[\s,\/]+/", $value);
   }
 
   private function modColumnValue($column, &$opt_val, &$args = array()) {
@@ -1545,6 +1576,82 @@ class ShopifyStandard {
     }
   }
 
+  private function getAllDbEdits($prefix = "products_", $mod_suffix = "_edited") {
+    $org_tbls = $this->getAllTables($prefix, false, $mod_suffix);
+    $original = array();
+    $edits    = array();
+    foreach($org_tbls as $org_tbl) {
+      // load results for edited table
+      $result = $this->query("SELECT * FROM $org_tbl$mod_suffix ORDER BY handle, title DESC, variant_sku");
+      if(!($result&&$result->num_rows>0)) continue;
+      $edits["$org_tbl$mod_suffix"] = array_column($result->fetch_all(MYSQLI_ASSOC), null, "variant_sku");
+      $result->free_result();
+      // load results for original table
+      $result = $this->query("SELECT * FROM $org_tbl ORDER BY handle, title DESC, variant_sku");
+      if(!($result&&$result->num_rows>0)) continue;
+      $original[$org_tbl] = array_column($result->fetch_all(MYSQLI_ASSOC), null, "variant_sku");
+      $result->free_result();
+    }
+    // ShopifyStandard::diedump($edits);
+    // return array_map("array_diff_assoc",$edits, $original);
+    $diff = array();
+    foreach($original as $table => $org) {
+      $edit = $edits["$table$mod_suffix"];
+      if(empty($org)&&empty($edit)) continue;
+      if(empty($org)) {
+        $diff["$table$mod_suffix"] = $edit;
+        continue;
+      }
+      $diff["$table$mod_suffix"] = @array_diff_assoc($edit, $org); //self::array_diff_assoc_recursive($edit, $org);
+    }
+    return $diff;
+  }
+
+  private function writeDataToExport($filename = null, $prefix = "products_", $mod_suffix = "_edited") {
+    $edits    = $this->getAllDbEdits($prefix, $mod_suffix);
+    $mod_time = time();
+    $tmp_dir  = is_writeable($tmp=sys_get_temp_dir()) ? $tmp : '/tmp';
+    $tmp_name = 'shopifystandard_csv_'.$mod_time;
+    if(!is_writable($tmp_dir)) {
+      return !$this->setState("csv_generation_error", "Error Generating CSV File. Temporary Path '$tmp_dir' is Unwritable.", compact(explode('$','$tmp_dir$tmp_name$edits')));
+    }
+    $tmp_csv  = tempnam($tmp_dir, $tmp_name);
+    $tmp_hdl  = fopen($tmp_csv, 'wb');
+    fputcsv($tmp_hdl, array_values(ShopifyStandard::COL_MAP));
+    foreach($edits as $table => $rows) {
+      if(count($rows)==0) continue;
+      foreach($rows as $var_sku => $row) {
+        fputcsv($tmp_hdl, $row);
+      }
+    }
+    fclose($tmp_hdl);
+    $rel_path   = !is_string($filename) ? $this->out_path : $filename;
+    $out_dir    = realpath(dirname($rel_path));
+    $out_file   = basename($rel_path);
+    $out_folder = "output";
+    $out_path   = implode(DIRECTORY_SEPARATOR,array($out_dir,$out_folder,$out_file));
+    if($out_dir===false) return !$this->setState("invalid_out_path_error","CSV Desination File Not Found", compact(explode('$','$rel_path$out_path')), null, "write_csv");
+    $out_dir = implode(DIRECTORY_SEPARATOR,array($out_dir,$out_folder));
+    $path_vars = compact(explode('$','$rel_path$out_path$tmp_csv$out_dir$out_file$out_folder'));
+    if(!is_writable($out_dir)) {
+      chmod($out_dir, 0777); // if not writiable, just go make it writeable in terminal
+      if(!is_writable($out_dir)) return !$this->setState("csv_generation_error", "Error Making Output CSV Directory Writable", $path_vars);
+    }
+    if(!file_exists($out_path)) {
+      touch($out_path, $mod_time);
+      if(!file_exists($out_path)) return !$this->setState("csv_generation_error", "Error Touching Output File", $path_vars);
+    }
+    if(!is_writable($out_path)) {
+      chmod($out_path, 0777);
+      if(!is_writable($out_path)) return !$this->setState("csv_generation_error", "Error Making CSV Output File Writable", $path_vars);
+    }
+    if(copy($tmp_csv, $out_path)) {
+      return !!$this->setState("csv_generation_success","CSV File Successfully Generated at '$out_path'.", $path_vars);
+    } else {
+      return  !$this->setState("csv_generation_error","Error Generating CSV File at '$out_path'.",$path_vars);
+    }
+  }
+
   private function getProductData($prefix = 'products_') {
     if(empty($this->product_data)) {
       // remove csv data if loaded, cause that's a TON of data with both
@@ -1606,7 +1713,7 @@ class ShopifyStandard {
         $this->setState("query_fail","MySQLi Error: ".$this->db->error, array("query"=>$query));
       }
     }
-    return (count($this->states)==0);
+    return (count($this->states)==0)? true : $this->getLastState(-1);
   }
 
   private function getOptionKeyValueByColumn($column = 1) {

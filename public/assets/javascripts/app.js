@@ -189,6 +189,8 @@ function App(_init_state) {
   function doAction(route) {
     if(empty(_actions)) setActions();
     // @todo: Need error checking for existing action...
+    if(typeof _actions[route.controller] === 'undefined') return false;
+    if(typeof _actions[route.controller][route.action] === 'undefined') return false;
     return _actions[route.controller][route.action].apply(_this, [ _state ]);
   }
 

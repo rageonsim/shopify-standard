@@ -31,7 +31,7 @@ switch($action) {
     $_use_view = "test";
     $state['dumpme'] = 
       array(
-        //"getCSVData" => $db->getCSVData(),
+        "getCSVData" => $db->getCSVData(),
         "setup_data" => $db->setupProductTables()
       );
   break;
@@ -139,6 +139,12 @@ switch($action) {
       "text"=> "Click here to download generated CSV"
     );
   break;
+  case 'write-export': {
+    $state['html_title'] = "Write Export";
+    $state['page_title'] = "Write CSV Export";
+    $state['page_lead']  = "A CSV to import into Shopify should be generated below:";
+    $state['dumpme'] = $db->writeExportFile();
+  }
   // unknown action
   default:
     $action = "404";
