@@ -109,20 +109,31 @@ switch($action) {
             ""=> ""))
       )); */
     //$state['dumpme'] = unserialize($_COOKIE[ShopifyStandard::COLOR_CACHE_COOKIE]);
-    
-    $arr = array(
-      "123" => array(
-        "update" => "sql",
-        "error"  => "errstr"
-      ),
-      "789" => "dome",
-      "456" => array(
-        "update" => "sql2",
-        "error"  => "erstr2"
-      )
-    );
 
-    $state['dumpme'] = array_filter($arr, "is_array");
+    $state['dumpme'] = array(
+          "XXS"   => "XX-Small",
+          "XS"    => "X-Small",
+          "S"     => "Small",
+          "SM"    => "Small",
+          "M"     => "Medium",
+          "MD"    => "Medium",
+          "L"     => "Large",
+          "LG"    => "Large",
+          "XL"    => "X-Large",
+          "2XL"   => "XX-Large",
+          "2X"    => "XX-Large",
+          "3XL"   => "XXX-Large",
+          "3X"    => "XXX-Large",
+          "4XL"   => "XXXX-Large",
+          "4X"    => "XXXX-Large",
+          "5XL"   => "XXXXX-Large",
+          "5X"    => "XXXXX-Large",
+          "OS"    => "One-Size",
+          "OS"    => "One Size",
+          "TW"    => "Twin",
+          "QN"    => "Queen",
+          "KG"    => "King",
+        );
     // array_column($arr,"error","update");
 
     

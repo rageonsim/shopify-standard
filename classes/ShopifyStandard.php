@@ -183,25 +183,28 @@ class ShopifyStandard {
       $col1 = $this->validationVarByColumn(0);
       if(!isset($this->$col1) || empty($this->$col1)) {
         $this->$col1 = array(
-          "XXS" => "XX-Small",
-          "XS"  => "X-Small",
-          "S"   => "Small",
-          "SM"  => "Small",
-          "M"   => "Medium",
-          "MD"  => "Medium",
-          "L"   => "Large",
-          "LG"  => "Large",
-          "XL"  => "X-Large",
-          "2XL" => "XX-Large",
-          "2X"  => "XX-Large",
-          "3XL" => "XXX-Large",
-          "3X"  => "XXX-Large",
-          "4XL" => "XXXX-Large",
-          "4X"  => "XXXX-Large",
-          "5XL" => "XXXXX-Large",
-          "5X"  => "XXXXX-Large",
-          "OS"  => "One-Size",
-          "OS"  => "One Size"
+          "XXS"   => "XX-Small",
+          "XS"    => "X-Small",
+          "S"     => "Small",
+          "SM"    => "Small",
+          "M"     => "Medium",
+          "MD"    => "Medium",
+          "L"     => "Large",
+          "LG"    => "Large",
+          "XL"    => "X-Large",
+          "2XL"   => "XX-Large",
+          "2X"    => "XX-Large",
+          "3XL"   => "XXX-Large",
+          "3X"    => "XXX-Large",
+          "4XL"   => "XXXX-Large",
+          "4X"    => "XXXX-Large",
+          "5XL"   => "XXXXX-Large",
+          "5X"    => "XXXXX-Large",
+          "OS"    => "One-Size",
+          "OS"    => "One Size",
+          "TW"    => "Twin",
+          "QN"    => "Queen",
+          "KG"    => "King",
         );
       }
       
@@ -1458,7 +1461,7 @@ class ShopifyStandard {
     // look for invalid short code
     if(array_key_exists($opt_val,$VVarr)) {
       // needs to be switched for valid short code below
-      $value = $VVarr[$value];
+      $opt_val = $VVarr[$opt_val];
     }
     // change size word to 1-3 letter valid google code
     $key_val = array_search($opt_val,$VVarr);
@@ -1602,7 +1605,7 @@ class ShopifyStandard {
         $diff["$table$mod_suffix"] = $edit;
         continue;
       }
-      $diff["$table$mod_suffix"] = @array_diff_assoc($edit, $org); //self::array_diff_assoc_recursive($edit, $org);
+      $diff["$table$mod_suffix"] = array_intersect_key($edit,self::array_diff_assoc_recursive($edit, $org));
     }
     return $diff;
   }
@@ -1617,11 +1620,16 @@ class ShopifyStandard {
     }
     $tmp_csv  = tempnam($tmp_dir, $tmp_name);
     $tmp_hdl  = fopen($tmp_csv, 'wb');
-    fputcsv($tmp_hdl, array_values(ShopifyStandard::COL_MAP));
+    $col_hdrs = array_values(ShopifyStandard::COL_MAP);
+    fputcsv($tmp_hdl, $col_hdrs);
     foreach($edits as $table => $rows) {
       if(count($rows)==0) continue;
       foreach($rows as $var_sku => $row) {
-        fputcsv($tmp_hdl, $row);
+        $csv_row = array();
+        foreach(ShopifyStandard::COL_MAP as $db_col => $csv_col) {
+          $csv_row[$csv_col] = (array_key_exists($db_col,$row)!==false) ? $row[$db_col] : null;
+        }
+        fputcsv($tmp_hdl, $csv_row);
       }
     }
     fclose($tmp_hdl);
@@ -1748,12 +1756,12 @@ class ShopifyStandard {
   }
 
   protected function setState($code = "shopify_standard_error", $message = "Error in ShopifyStandard", $data = null, $count = null, $group = null) {
-    $group = is_null($group)? debug_backtrace()[1]['function'] : $group;
-    $data   = is_null($data)  ? debug_backtrace() : self::array_copy($data);
-    $count  = is_null($count) ? (
+    $group  = (string)(is_null($group)? debug_backtrace()[1]['function'] : $group);
+    $data   = (array)(is_null($data)  ? debug_backtrace() : self::array_copy($data));
+    $count  = (int)(is_null($count) ? (
       (isset($this->states[$group])) ? (
         (isset($this->states[$group][$code])) ? (
-          count($this->states[$group][$code]) ) : ( 0 ) ) : ( 0 ) ) : ( is_null($count) ? 0 : $count );
+          count($this->states[$group][$code]) ) : ( 0 ) ) : ( 0 ) ) : ( is_null($count) ? 0 : $count ));
     try {
       if(!isset($this->states[$group])) $this->states[$group] = array();
       if(!isset($this->states[$group][$code])) $this->states[$group][$code] = array();

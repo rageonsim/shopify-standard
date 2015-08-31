@@ -114,7 +114,9 @@ function App(_init_state) {
               var var_sku = response.request.params.var_sku,
                   $input  = jQuery("#"+var_sku);
               if($input.hasClass("unedited") && $input.hasClass("undetermined")) {
-                $input.val(response.suggestion).toggleClass("determined undetermined");
+                $input.data("ajax-suggestion",response.suggestion)
+                      .val(response.suggestion).change()
+                      .toggleClass("determined undetermined");
               }
               $input.data("ajax-determined",response.suggestion);
             },
@@ -151,12 +153,25 @@ function App(_init_state) {
         "colors": function(state) {
           // console.info({"_actions:update:colors":state});
           var $inputs = jQuery(".ajax-determine-color");
+          var $progress = jQuery(".progress-bar");
+              $progress.find(".progress-max").text($inputs.length);
           // track edits
           $inputs.
-            on("change", ".edited,.unedited", function(e) {
+            on("change", function(e) {
               var $input = jQuery(e.target);
-              if($input.val().localeCompare($input.data('org-value'))==0) return !!$input.removeClass("edited").addClass("unedited");
-              return !!$input.toggleClass("edited unedited");
+              if($input.val().localeCompare($input.data('org-value'))==0) {
+                $input.removeClass("edited").addClass("unedited");
+              } else {
+                $input.removeClass("unedited").addClass("edited");
+              }
+              var edited = $inputs.filter('.edited').length,
+                  total  = $inputs.length,
+                  percnt = Math.round((edited/total)*100);
+              $progress.css("width",percnt+"%").attr("aria-valuenow",percnt);
+              $progress.find(".progress-at").text(edited);
+              if(state.auto_advance && percnt==100) {
+                $input.parents("form").submit();
+              }
             }).
             each(function(index, input) {
               var $input = jQuery(input),
@@ -164,14 +179,15 @@ function App(_init_state) {
               $label.on("click", function(e) {
                 $input.val($input.data('org-value'));
               });
-
             }).
             filter(".undetermined").each(function(index, input) {
               var $input    = jQuery(input),
                   ajax_data = $input.data('ajax-data'),
                   ajax_url  = $input.data('ajax-url');
               ajax_data.cur_val = $input.val();
-              $input.data("ajax-deferred", ajax(ajax_url, ajax_data, false));
+              $input.data("ajax-deferred", 
+                ajax(ajax_url, ajax_data, false) // do callback ^
+              );
             });
 
 
