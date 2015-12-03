@@ -865,5 +865,10 @@ return array(
 "Cream"=>"#FFFDD0",
 "Daffodil"=>"#FFFF31",
 "Light Yellow"=>"#FFFFE0",
-"Ivory"=>"#FFFFF0"
+"Ivory"=>"#FFFFF0",
+"Icy Blue" => -1,
+"Flesh" => -2,
+"Neon Pink" => -3,
+"Neon Orange" => -4,
+"Mocha" => -5
 );

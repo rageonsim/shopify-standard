@@ -17,6 +17,7 @@
 
 .sku-inputs {
 	position: relative;
+	white-space: nowrap;
 }
 
 .sku-inputs input {

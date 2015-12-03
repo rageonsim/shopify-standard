@@ -30,14 +30,16 @@ $html_title = 'Save';
 switch($action) {
 	// Save Skus, posted from update form
 	case 'skus':
+		if($_SERVER['REQUEST_METHOD'] !== 'POST') return loadController(REFERER(),$state,1);
 		$sku_data  = $_POST['skus'];
 		$return_to = isset($_POST['return_to']) ? trim($_POST['return_to'],'/') : REFERER();
 		if(!$sku_data) return loadController($return_to, array("error"=>$db->setState("null_sku_data_error","No SKU Data Received by the Server",$_POST,null,"loadOptions")));
 		$fix_skus = $db->doUpdateSkus($sku_data);
-		ShopifyStandard::diedump(compact(explode('$','$sku_data$return_to$fix_skus')));
+		//ShopifyStandard::diedump(compact(explode('$','$sku_data$return_to$fix_skus')));
 		return loadController($return_to, $fix_skus, 1, 1);
 	break;
 	case 'colors':
+		if($_SERVER['REQUEST_METHOD'] !== 'POST') return loadController(REFERER(),$state,1);
 		// clear state
 		$state      = array();
 		$color_data = $_POST['colors'];

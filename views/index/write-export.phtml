@@ -1,0 +1,12 @@
+<h2>Processing Message:</h2>
+<table class="table table-bordered table-striped table-hover">
+<?php foreach($exp_info as $result): ?>
+<tr><th colspan="2"><span><?php echo $result['message']; ?></span></th></tr>
+<?php foreach($result['data'] as $label=>$info): ?>
+<tr>
+	<th><span><?php echo str_replace("_"," ", $label); ?></span></th>
+	<td><span><?php echo $info; ?></span></td>
+</tr>
+<?php endforeach; ?>
+</table>
+<?php endforeach; ?>

@@ -6,6 +6,15 @@
  * String Prototypes (replaceAll and google category (from excel paste))
  */
 
+if(!"bookmarket-to-add-color") {
+  $("button:contains('Edit options')").trigger("click");
+  setTimeout(function() {
+    $(document.querySelectorAll("a.btn.add-option")[0]).trigger("click");
+    $(document.querySelectorAll("[placeholder='Default Color']")[0]).val(prompt("Color?")).change();
+    $("input[type='submit'].btn.btn-primary").first().trigger("click");
+    window.close();
+  }, 600);
+}
  
 
 String.prototype.replaceAll = function(find, replace) {
@@ -33,6 +42,17 @@ Object.deepExtend = function(destination, source) {
   }
   return destination;
 };
+
+function jumpSkuFixAssumeU() {
+  $("tr[class$='row']").each(function(index,row) {
+    $group = $(row).find("input[name$='group]']");
+    $size  = $(row).find("input[name$='size]']");
+    $special = $(row).find("input[name$='special]']");
+    $special.val($size.val().replace(/.(.*)/,'$1')+$special.val());
+    $size.val($group.val()+$size.val().charAt(0));
+    $group.val("U");
+  });
+}
 
 // <body>
 //   <textarea id="text" style="margin: 0px; width: 100%; height: 200px;font-size: 115%;"></textarea>

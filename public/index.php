@@ -18,9 +18,9 @@
 
 	if(DEBUG) {
 		// Set memory limit to prevent out-of-memory issues
-		// ini_set('memory_limit', '-1'); // Unlimited memory... bad idea
+		ini_set('memory_limit', '-1'); // Unlimited memory... bad idea
 		// increase execution time to 60 seconds for debugging
-		set_time_limit(30);
+		set_time_limit(120);
 	}
 
 	if(DEBUG) error_log("/*****************************************************************************************\\") &&

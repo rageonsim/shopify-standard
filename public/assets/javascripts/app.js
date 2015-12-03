@@ -18,6 +18,7 @@ function App(_init_state) {
     console.log("App adding Library...");
     return false;
   }
+  if((typeof Array.slice == 'undefined') && (typeof Array.from !== 'undefined')) Array.slice = Array.from;
 
   // Private Class Variables (prefix with underscore)
   var _this = this,
@@ -31,10 +32,11 @@ function App(_init_state) {
         "params"  : {}
       }
     },
-    _route = null,
-    _actions = {},
+    _route     = null,
+    _actions   = {},
     _callbacks = {},
-    _sync_ajax = {};
+    _ajax      = null,
+    _sync_ajax = [];
 
   // Public Class Variables
   _this.initd = false;
@@ -66,12 +68,12 @@ function App(_init_state) {
     async  = typeof async  === 'undefined' ?  true  : async;
     method = typeof method === "undefined" ? "POST" : method;
     if(async) {
-      return doAjax(ajax_url, ajax_data, method);
+      return _ajax = doAjax(ajax_url, ajax_data, method);
     } else {
-      if(!!_sync_ajax&&!!_sync_ajax.then) {
-        return _sync_ajax.then(doAjax(ajax_url, ajax_data, method));
+      if(_sync_ajax.length==0||!_ajax.resolved) {
+        return _ajax = doAjax(ajax_url,ajax_data,method);
       } else {
-        return (_sync_ajax = doAjax(ajax_url, ajax_data, method));
+        return _sync_ajax.push([ajax_url, ajax_data, method]);
       }
     }
   }
@@ -88,7 +90,12 @@ function App(_init_state) {
       }).
       success(callbacks.success).
       error(callbacks.error).
-      complete(callbacks.complete);
+      complete(function() {
+        callbacks.complete.apply(this, arguments);
+        if(_sync_ajax.length>0) _ajax.then(function() {
+          _ajax = doAjax.apply(_this, _sync_ajax.shift());
+        });
+      });
   }
 
   function getCallbacks(path) {
@@ -111,14 +118,21 @@ function App(_init_state) {
         "determine": {
           "color": {
             success: function(response, status_str, jqXHR_obj) {
+              if(!!response.errors) {
+                jQuery(".progress-bar").addClass('progress-bar-danger');
+                return console.log({"AJAX Error":response});
+              }
               var var_sku = response.request.params.var_sku,
                   $input  = jQuery("#"+var_sku);
               if($input.hasClass("unedited") && $input.hasClass("undetermined")) {
-                $input.data("ajax-suggestion",response.suggestion)
-                      .val(response.suggestion).change()
-                      .toggleClass("determined undetermined");
+                $input.val(response.suggestion).change().toggleClass("determined undetermined");
               }
-              $input.data("ajax-determined",response.suggestion);
+              $input.data("ajax-suggestion",response.suggestion);
+              if(!$input.next(".ajax-determination").length) {
+                $input.after('<div class="ajax-determination"><label>Suggestion:</label><span /></div>');
+              }
+              var $determ = $input.next(".ajax-determination");
+              $determ.find("span").text("'"+response.suggestion+"'");
             },
             error: function(jqXHR_obj, status_str, error_str) {
               console.log({"error": arguments});
@@ -143,7 +157,11 @@ function App(_init_state) {
     _this.actions = actions==false||empty(actions) ? {
       "index": {
         "fix-options": function(state) {
-
+          if(_state.referer=="save/colors") {
+            setTimeout(function() {
+              if(!document.getElementsByClassName("alert-danger").length) window.location = window.location.toString().replace(_state.referer,_route.controller+'/'+_route.action);
+            }, 1000);
+          }
         }
       },
       "update": {
@@ -170,6 +188,7 @@ function App(_init_state) {
               $progress.css("width",percnt+"%").attr("aria-valuenow",percnt);
               $progress.find(".progress-at").text(edited);
               if(state.auto_advance && percnt==100) {
+                if(!$progress.hasClass("progress-bar-danger")) $progress.addClass("progress-bar-success");
                 $input.parents("form").submit();
               }
             }).
@@ -184,14 +203,11 @@ function App(_init_state) {
               var $input    = jQuery(input),
                   ajax_data = $input.data('ajax-data'),
                   ajax_url  = $input.data('ajax-url');
-              ajax_data.cur_val = $input.val();
+              // ajax_data.cur_val = $input.val();
               $input.data("ajax-deferred", 
                 ajax(ajax_url, ajax_data, false) // do callback ^
               );
             });
-
-
-          
         }
       },
       "save": {

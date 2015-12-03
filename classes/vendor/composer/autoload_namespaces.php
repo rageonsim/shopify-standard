@@ -7,4 +7,5 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'League\\ColorExtractor' => array($vendorDir . '/league/color-extractor/src', $vendorDir . '/league/color-extractor/tests'),
+    'ForceUTF8\\' => array($vendorDir . '/neitanod/forceutf8/src'),
 );

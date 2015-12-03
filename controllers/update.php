@@ -36,9 +36,9 @@ switch($action) {
 		// $state = array();
 		// $state['dumpme'] = $data;
 		if(!isset($state)) $state = array();
-		if(!array_key_exists("sku_parse_error", $state)) {
-			return loadController("fix-options", $state, 1);
-		}
+		// if(!array_key_exists("sku_parse_error", $state)) {
+		// 	return loadController("fix-options", $state, 1);
+		// }
 		$state = array_merge($state, array(
 			'products_url'    => "https://www.rageon.com/products/",
 			'errors_per_page' => 20,
@@ -56,6 +56,18 @@ switch($action) {
 		if(!array_key_exists("color_needs_determination_error", $state)) {
 			return loadController("fix-options", $state, 1);
 		}
+		
+		$to_edit = array_column($state['color_needs_determination_error'],null,"var_sku");
+		$duplicates = array();
+		$remove     = array();
+		foreach($state['color_needs_determination_error'] as $_sku => $_error) {
+			if(in_array($_sku,$duplicates)&&!in_array($_sku, $remove)) {
+				$remove[] = $_sku;
+			} elseif(!in_array($_sku,$duplicates)) {
+				$duplicates[] = $_sku;
+			}
+		}
+		$state['color_needs_determination_error'] = array_values(array_diff_key($to_edit, array_flip($remove)));
 		$state = array_merge($state, array(
 			'products_url'    => "https://www.rageon.com/products/",
 			'errors_per_page' => 20,

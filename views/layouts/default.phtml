@@ -34,7 +34,7 @@
 		<?php endif; ?>
 		<?php loadPartial('alerts/display-alerts', $state); ?>
 		<?php /** Include View in Layout (for specific contorller and action, make sure it exists) */
-		$view_path = realpath(__DIR__."/../".$controller."/".(isset($_use_view)?$_use_view:($_use_view=$action)).".phtml");
+		$view_path = realpath(__DIR__."/../$controller/".(isset($_use_view)?$_use_view:($_use_view=$action)).".phtml");
 			include (!$view_path||$_use_view==="404" ? realpath(__DIR__."/../errors/404.phtml") : $view_path);
 		/******* End inclusion of view *********************************************************** */ ?>
 	</div><?php /** Include Javascripts and Instatiate Below ***********************************/ ?>
